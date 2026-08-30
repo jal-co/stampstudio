@@ -7,7 +7,8 @@ export interface ChangelogEntry {
 
 /**
  * Parse the changesets-generated CHANGELOG.md:
- * `## <version>` headings with `- ` bullets underneath
+ * `## <version>` headings with `- ` bullets underneath, including the
+ * indented sub-bullets changesets writes for a multi-line summary
  * (### Minor/Patch Changes headings are skipped).
  */
 function parse(md: string): ChangelogEntry[] {
@@ -20,7 +21,7 @@ function parse(md: string): ChangelogEntry[] {
       entries.push(current)
       continue
     }
-    const bullet = line.match(/^- (.+)/)
+    const bullet = line.match(/^\s*- (.+)/)
     if (bullet && current) {
       // strip changeset commit-hash prefixes like "abc1234: "
       current.items.push(bullet[1].replace(/^[0-9a-f]{7,}: /, "").trim())

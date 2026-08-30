@@ -20,6 +20,7 @@ import {
 import { currentVersion } from "@/lib/changelog"
 import { Sidebar } from "@/components/Sidebar"
 import { StampCanvas } from "@/components/StampCanvas"
+import { track } from "@/lib/analytics"
 import { loadImageFile } from "@/lib/load-image"
 import type { StampRenderer } from "@/lib/stamp-renderer"
 import { defaultSettings, type StampSettings } from "@/lib/settings"
@@ -95,10 +96,10 @@ export default function App() {
 
   // a preset is a whole look, so it replaces the sheet instead of layering
   // onto whatever the sliders were left at
-  const applyPreset = useCallback(
-    (p: Partial<StampSettings>) => setSettings({ ...defaultSettings, ...p }),
-    [],
-  )
+  const applyPreset = useCallback((p: Partial<StampSettings>) => {
+    setSettings({ ...defaultSettings, ...p })
+    track("preset_applied", { frame: p.frame, vignette: p.vignette })
+  }, [])
 
   const handleUpload = useCallback(async (file: File) => {
     try {
@@ -121,6 +122,13 @@ export default function App() {
       a.href = url
       a.download = `${stampName(imageName, settings)}.png`
       a.click()
+      track("stamp_exported", {
+        format: "png",
+        size: settings.exportSize,
+        edge: settings.edge,
+        print: settings.print,
+        hasArtwork: imageName !== null,
+      })
       URL.revokeObjectURL(url)
     } finally {
       setExporting(false)

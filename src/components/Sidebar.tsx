@@ -207,6 +207,86 @@ function Dropzone({
   )
 }
 
+/** A titled block of controls, with an optional switch in the header. */
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function SelectRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  /** [value, label] pairs, in the order they should read */
+  options: [string, string][]
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(([v, l]) => (
+            <SelectItem key={v} value={v}>
+              {l}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint?: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <Label className="text-xs">
+        {label}
+        {hint && (
+          <span className="block text-[11px] font-normal text-muted-foreground">
+            {hint}
+          </span>
+        )}
+      </Label>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+    </div>
+  )
+}
+
 export function Sidebar({
   settings,
   imageName,
@@ -229,11 +309,8 @@ export function Sidebar({
       <Separator />
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-4 py-4">
-          {/* Presets */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Start from
-            </h2>
+          {/* Start from a finished look */}
+          <Section title="Start from">
             <div className="grid grid-cols-2 gap-1.5">
               {presets.map((p) => (
                 <button
@@ -251,15 +328,110 @@ export function Sidebar({
                 </button>
               ))}
             </div>
-          </section>
+          </Section>
 
           <Separator />
 
-          {/* Press */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Press
-            </h2>
+          {/* Artwork and how it sits in its window */}
+          <Section title="Artwork">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) onUpload(f)
+                e.target.value = ""
+              }}
+            />
+            <Dropzone
+              imageName={imageName}
+              onUpload={onUpload}
+              onOpen={() => fileRef.current?.click()}
+            />
+            {imageName && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-accent/60 py-0.5 pl-2.5 pr-0.5">
+                <span
+                  className="min-w-0 flex-1 truncate text-xs text-foreground"
+                  title={imageName}
+                >
+                  {imageName}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Remove artwork"
+                  onClick={onRemove}
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color] hover:bg-accent hover:text-foreground"
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              </div>
+            )}
+            {imageName && (
+              <>
+                <SelectRow
+                  label="Fit"
+                  value={settings.artFit}
+                  onChange={(v) => onChange({ artFit: v as ArtFit })}
+                  options={[
+                    ["contain", "Fit inside"],
+                    ["cover", "Fill and crop"],
+                    ["stretch", "Stretch"],
+                  ]}
+                />
+                {settings.vignette === "none" ? (
+                  <SwitchRow
+                    label="Full bleed"
+                    hint="Frame prints over the picture"
+                    checked={settings.artBleed}
+                    onChange={(v) => onChange({ artBleed: v })}
+                  />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    The picture is held to the {settings.vignette} vignette, so
+                    it cannot bleed to the paper edge.
+                  </p>
+                )}
+                <SliderRow
+                  label="Zoom"
+                  value={settings.artZoom}
+                  min={0.25}
+                  max={3}
+                  step={0.01}
+                  format={(v) => `${v.toFixed(2)}\u00d7`}
+                  onChange={(v) => onChange({ artZoom: v })}
+                />
+                <SliderRow
+                  label="Position X"
+                  value={settings.artPos.x}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  format={(v) => v.toFixed(2)}
+                  onChange={(v) =>
+                    onChange({ artPos: { ...settings.artPos, x: v } })
+                  }
+                />
+                <SliderRow
+                  label="Position Y"
+                  value={settings.artPos.y}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  format={(v) => v.toFixed(2)}
+                  onChange={(v) =>
+                    onChange({ artPos: { ...settings.artPos, y: v } })
+                  }
+                />
+              </>
+            )}
+          </Section>
+
+          <Separator />
+
+          {/* The press, and the ink it lays down */}
+          <Section title="Printing">
             <div
               role="radiogroup"
               aria-label="Printing process"
@@ -307,176 +479,53 @@ export function Sidebar({
               format={pct}
               onChange={(v) => onChange({ relief: v })}
             />
-          </section>
+          </Section>
 
           <Separator />
 
-          {/* Artwork */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Artwork
-            </h2>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) onUpload(f)
-                e.target.value = ""
-              }}
-            />
-            <Dropzone
-              imageName={imageName}
-              onUpload={onUpload}
-              onOpen={() => fileRef.current?.click()}
-            />
-            {imageName && (
-              <div className="flex items-center gap-1.5 rounded-lg bg-accent/60 py-0.5 pl-2.5 pr-0.5">
-                <span
-                  className="min-w-0 flex-1 truncate text-xs text-foreground"
-                  title={imageName}
-                >
-                  {imageName}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Remove artwork"
-                  onClick={onRemove}
-                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color] hover:bg-accent hover:text-foreground"
-                >
-                  <X className="size-3.5" aria-hidden />
-                </button>
-              </div>
-            )}
-            {imageName && (
-              <>
-                <div className="space-y-2">
-                  <Label className="text-xs">Fit</Label>
-                  <Select
-                    value={settings.artFit}
-                    onValueChange={(v) => onChange({ artFit: v as ArtFit })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="contain">Fit inside</SelectItem>
-                      <SelectItem value="cover">Fill and crop</SelectItem>
-                      <SelectItem value="stretch">Stretch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {settings.vignette === "rect" ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <Label className="text-xs">
-                      Full bleed
-                      <span className="block text-[11px] font-normal text-muted-foreground">
-                        Frame prints over the picture
-                      </span>
-                    </Label>
-                    <Switch
-                      checked={settings.artBleed}
-                      onCheckedChange={(v) => onChange({ artBleed: v })}
-                      aria-label="Run the artwork to the paper edge"
-                    />
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    The picture is held to the {settings.vignette} vignette, so
-                    it cannot bleed to the paper edge.
-                  </p>
-                )}
-                <SliderRow
-                  label="Zoom"
-                  value={settings.artZoom}
-                  min={0.25}
-                  max={3}
-                  step={0.01}
-                  format={(v) => `${v.toFixed(2)}\u00d7`}
-                  onChange={(v) => onChange({ artZoom: v })}
-                />
-                <SliderRow
-                  label="Position X"
-                  value={settings.artPos.x}
-                  min={-1}
-                  max={1}
-                  step={0.01}
-                  format={(v) => v.toFixed(2)}
-                  onChange={(v) =>
-                    onChange({ artPos: { ...settings.artPos, x: v } })
-                  }
-                />
-                <SliderRow
-                  label="Position Y"
-                  value={settings.artPos.y}
-                  min={-1}
-                  max={1}
-                  step={0.01}
-                  format={(v) => v.toFixed(2)}
-                  onChange={(v) =>
-                    onChange({ artPos: { ...settings.artPos, y: v } })
-                  }
-                />
-              </>
-            )}
-          </section>
-
-          <Separator />
-
-          {/* Design */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Design
-              </h2>
+          {/* Border plate */}
+          <Section
+            title="Frame"
+            action={
               <Switch
                 checked={settings.designOn}
                 onCheckedChange={(v) => onChange({ designOn: v })}
                 aria-label="Print the frame and lettering"
               />
-            </div>
+            }
+          >
             {settings.designOn && (
               <>
-                <div className="space-y-2">
-                  <Label className="text-xs">Frame</Label>
-                  <Select
-                    value={settings.frame}
-                    onValueChange={(v) => onChange({ frame: v as FrameStyle })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="rule">Single rule</SelectItem>
-                      <SelectItem value="classic">Classic corners</SelectItem>
-                      <SelectItem value="ornate">Ornate pearls</SelectItem>
-                      <SelectItem value="arched">Arched vignette</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Corner ornament</Label>
-                  <Select
-                    value={settings.ornament}
-                    onValueChange={(v) =>
-                      onChange({ ornament: v as OrnamentStyle })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="scroll">Engraver's scroll</SelectItem>
-                      <SelectItem value="leaf">Fleuron</SelectItem>
-                      <SelectItem value="rosette">Rosette</SelectItem>
-                      <SelectItem value="deco">Deco steps</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SelectRow
+                  label="Style"
+                  value={settings.frame}
+                  onChange={(v) => onChange({ frame: v as FrameStyle })}
+                  options={[
+                    ["none", "None"],
+                    ["rule", "Single rule"],
+                    ["classic", "Classic corners"],
+                    ["ornate", "Ornate pearls"],
+                    ["arched", "Arched vignette"],
+                  ]}
+                />
+                <ColorPickerField
+                  label="Frame & lettering colour"
+                  value={settings.frameColor}
+                  swatches={inkSwatches}
+                  onChange={(hex) => onChange({ frameColor: hex })}
+                />
+                <SelectRow
+                  label="Corner ornament"
+                  value={settings.ornament}
+                  onChange={(v) => onChange({ ornament: v as OrnamentStyle })}
+                  options={[
+                    ["none", "None"],
+                    ["scroll", "Engraver's scroll"],
+                    ["leaf", "Fleuron"],
+                    ["rosette", "Rosette"],
+                    ["deco", "Deco steps"],
+                  ]}
+                />
                 {settings.ornament !== "none" && (
                   <SliderRow
                     label="Ornament size"
@@ -488,114 +537,124 @@ export function Sidebar({
                     onChange={(v) => onChange({ ornamentSize: v })}
                   />
                 )}
-                <div className="space-y-2">
-                  <Label className="text-xs">Vignette</Label>
-                  <Select
-                    value={settings.vignette}
-                    onValueChange={(v) =>
-                      onChange({ vignette: v as VignetteShape })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="rect">Rectangle</SelectItem>
-                      <SelectItem value="arch">Arch</SelectItem>
-                      <SelectItem value="oval">Oval</SelectItem>
-                      <SelectItem value="circle">Circle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {settings.vignette !== "none" && (
-                  <>
-                    <div className="flex items-center justify-between gap-3">
-                      <Label className="text-xs">Draw vignette</Label>
-                      <Switch
-                        checked={settings.vignetteRule}
-                        onCheckedChange={(v) => onChange({ vignetteRule: v })}
-                        aria-label="Rule the vignette outline"
-                      />
-                    </div>
-                    {settings.vignetteRule && (
-                      <ColorPickerField
-                        label="Vignette colour"
-                        value={settings.vignetteColor}
-                        swatches={inkSwatches}
-                        onChange={(hex) => onChange({ vignetteColor: hex })}
-                      />
-                    )}
-                    <SliderRow
-                      label="Vignette feather"
-                      value={settings.feather}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      format={pct}
-                      onChange={(v) => onChange({ feather: v })}
-                    />
-                  </>
+                <SliderRow
+                  label="Margin"
+                  value={settings.margin}
+                  min={0.02}
+                  max={0.2}
+                  step={0.005}
+                  format={(v) => v.toFixed(3)}
+                  onChange={(v) => onChange({ margin: v })}
+                />
+              </>
+            )}
+          </Section>
+
+          <Separator />
+
+          {/* The window the picture is masked into */}
+          <Section title="Vignette">
+            <SelectRow
+              label="Shape"
+              value={settings.vignette}
+              onChange={(v) => onChange({ vignette: v as VignetteShape })}
+              options={[
+                ["none", "None"],
+                ["rect", "Rectangle"],
+                ["arch", "Arch"],
+                ["oval", "Oval"],
+                ["circle", "Circle"],
+              ]}
+            />
+            {settings.vignette !== "none" && (
+              <>
+                <SwitchRow
+                  label="Draw vignette"
+                  checked={settings.vignetteRule}
+                  onChange={(v) => onChange({ vignetteRule: v })}
+                />
+                {settings.vignetteRule && (
+                  <ColorPickerField
+                    label="Vignette colour"
+                    value={settings.vignetteColor}
+                    swatches={inkSwatches}
+                    onChange={(hex) => onChange({ vignetteColor: hex })}
+                  />
                 )}
-                <div className="space-y-2">
-                  <Label className="text-xs">Typeface</Label>
-                  <Select
-                    value={settings.typeface}
-                    onValueChange={(v) => onChange({ typeface: v as Typeface })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="serif">Engraved serif</SelectItem>
-                      <SelectItem value="didone">Didone</SelectItem>
-                      <SelectItem value="grotesque">Grotesque</SelectItem>
-                      <SelectItem value="condensed">Condensed gothic</SelectItem>
-                      <SelectItem value="typewriter">Typewriter</SelectItem>
-                      <SelectItem value="script">Script</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SliderRow
+                  label="Feather"
+                  value={settings.feather}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  format={pct}
+                  onChange={(v) => onChange({ feather: v })}
+                />
+              </>
+            )}
+          </Section>
+
+          <Separator />
+
+          {/* Country line, value and caption */}
+          {settings.designOn && (
+            <>
+              <Section title="Lettering">
+                <SelectRow
+                  label="Typeface"
+                  value={settings.typeface}
+                  onChange={(v) => onChange({ typeface: v as Typeface })}
+                  options={[
+                    ["serif", "Engraved serif"],
+                    ["didone", "Didone"],
+                    ["grotesque", "Roman caps"],
+                    ["condensed", "Condensed gothic"],
+                    ["typewriter", "Typewriter"],
+                    ["script", "Script"],
+                  ]}
+                />
                 <TextRow
                   label="Country line"
                   value={settings.country}
                   placeholder="UNITED STATES POSTAGE"
                   onChange={(v) => onChange({ country: v })}
                 />
+                {settings.country && (
+                  <SwitchRow
+                    label="Curve over the vignette"
+                    checked={settings.countryArc}
+                    onChange={(v) => onChange({ countryArc: v })}
+                  />
+                )}
                 <TextRow
                   label="Denomination"
                   value={settings.denomination}
                   placeholder="13¢"
                   onChange={(v) => onChange({ denomination: v })}
                 />
-                {settings.denomination && !settings.tablets && (
-                  <div className="space-y-2">
-                    <Label className="text-xs">Value corner</Label>
-                    <Select
-                      value={settings.denomAnchor}
-                      onValueChange={(v) =>
-                        onChange({ denomAnchor: v as DenomAnchor })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bottom-left">Lower left</SelectItem>
-                        <SelectItem value="bottom-center">
-                          Lower centre
-                        </SelectItem>
-                        <SelectItem value="bottom-right">
-                          Lower right
-                        </SelectItem>
-                        <SelectItem value="top-left">Upper left</SelectItem>
-                        <SelectItem value="top-right">Upper right</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
                 {settings.denomination && (
                   <>
+                    <SwitchRow
+                      label="Corner value tablets"
+                      checked={settings.tablets}
+                      onChange={(v) => onChange({ tablets: v })}
+                    />
+                    {!settings.tablets && (
+                      <SelectRow
+                        label="Value corner"
+                        value={settings.denomAnchor}
+                        onChange={(v) =>
+                          onChange({ denomAnchor: v as DenomAnchor })
+                        }
+                        options={[
+                          ["bottom-left", "Lower left"],
+                          ["bottom-center", "Lower centre"],
+                          ["bottom-right", "Lower right"],
+                          ["top-left", "Upper left"],
+                          ["top-right", "Upper right"],
+                        ]}
+                      />
+                    )}
                     <SliderRow
                       label="Value X"
                       value={settings.denomPos.x}
@@ -620,133 +679,39 @@ export function Sidebar({
                     />
                   </>
                 )}
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-xs">Curve the country line</Label>
-                  <Switch
-                    checked={settings.countryArc}
-                    onCheckedChange={(v) => onChange({ countryArc: v })}
-                    aria-label="Bend the country line over the vignette"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-xs">Corner value tablets</Label>
-                  <Switch
-                    checked={settings.tablets}
-                    onCheckedChange={(v) => onChange({ tablets: v })}
-                    aria-label="Print the value in both lower corners"
-                  />
-                </div>
                 <TextRow
                   label="Caption"
                   value={settings.caption}
                   placeholder="optional"
                   onChange={(v) => onChange({ caption: v })}
                 />
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-xs">Caption on a ribbon</Label>
-                  <Switch
+                {settings.caption && (
+                  <SwitchRow
+                    label="Caption on a ribbon"
                     checked={settings.ribbon}
-                    onCheckedChange={(v) => onChange({ ribbon: v })}
-                    aria-label="Print the caption on a ribbon"
+                    onChange={(v) => onChange({ ribbon: v })}
                   />
-                </div>
-                <ColorPickerField
-                  label="Frame & lettering colour"
-                  value={settings.frameColor}
-                  swatches={inkSwatches}
-                  onChange={(hex) => onChange({ frameColor: hex })}
-                />
-                <SliderRow
-                  label="Margin"
-                  value={settings.margin}
-                  min={0.02}
-                  max={0.2}
-                  step={0.005}
-                  format={(v) => v.toFixed(3)}
-                  onChange={(v) => onChange({ margin: v })}
-                />
-              </>
-            )}
-          </section>
+                )}
+              </Section>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
-          {/* Perforation */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Perforation
-            </h2>
-            <div className="space-y-2">
-              <Label className="text-xs">Edge</Label>
-              <Select
-                value={settings.edge}
-                onValueChange={(v) => onChange({ edge: v as EdgeStyle })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="perforated">Perforated</SelectItem>
-                  <SelectItem value="wavy">Wavy die-cut</SelectItem>
-                  <SelectItem value="rouletted">Rouletted</SelectItem>
-                  <SelectItem value="imperforate">Imperforate</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <SliderRow
-              label="Gauge"
-              value={settings.gauge}
-              min={7}
-              max={16}
-              step={0.5}
-              format={(v) => `perf ${v.toFixed(1)}`}
-              onChange={(v) => onChange({ gauge: v })}
+          {/* Stock */}
+          <Section title="Paper">
+            <SelectRow
+              label="Format"
+              value={settings.format}
+              onChange={(v) => onChange({ format: v as StampFormat })}
+              options={[
+                ["portrait", "Portrait"],
+                ["landscape", "Landscape"],
+                ["square", "Square"],
+                ["tall", "Tall commemorative"],
+                ["wide", "Wide commemorative"],
+              ]}
             />
-            <SliderRow
-              label="Hole size"
-              value={settings.holeSize}
-              min={0.18}
-              max={0.55}
-              step={0.01}
-              format={(v) => v.toFixed(2)}
-              onChange={(v) => onChange({ holeSize: v })}
-            />
-            <SliderRow
-              label="Torn fibre"
-              value={settings.tear}
-              min={0}
-              max={1}
-              step={0.01}
-              format={pct}
-              onChange={(v) => onChange({ tear: v })}
-            />
-          </section>
-
-          <Separator />
-
-          {/* Paper */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Paper
-            </h2>
-            <div className="space-y-2">
-              <Label className="text-xs">Format</Label>
-              <Select
-                value={settings.format}
-                onValueChange={(v) => onChange({ format: v as StampFormat })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="portrait">Portrait</SelectItem>
-                  <SelectItem value="landscape">Landscape</SelectItem>
-                  <SelectItem value="square">Square</SelectItem>
-                  <SelectItem value="tall">Tall commemorative</SelectItem>
-                  <SelectItem value="wide">Wide commemorative</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <SliderRow
               label="Stamp size"
               value={settings.size}
@@ -801,44 +766,80 @@ export function Sidebar({
               format={pct}
               onChange={(v) => onChange({ watermark: v })}
             />
-          </section>
+          </Section>
 
           <Separator />
 
-          {/* Cancellation */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Cancellation
-              </h2>
+          {/* How the sheet was separated */}
+          <Section title="Perforation">
+            <SelectRow
+              label="Edge"
+              value={settings.edge}
+              onChange={(v) => onChange({ edge: v as EdgeStyle })}
+              options={[
+                ["perforated", "Perforated"],
+                ["wavy", "Wavy die-cut"],
+                ["rouletted", "Rouletted"],
+                ["imperforate", "Imperforate"],
+              ]}
+            />
+            <SliderRow
+              label="Gauge"
+              value={settings.gauge}
+              min={7}
+              max={16}
+              step={0.5}
+              format={(v) => `perf ${v.toFixed(1)}`}
+              onChange={(v) => onChange({ gauge: v })}
+            />
+            <SliderRow
+              label="Hole size"
+              value={settings.holeSize}
+              min={0.18}
+              max={0.55}
+              step={0.01}
+              format={(v) => v.toFixed(2)}
+              onChange={(v) => onChange({ holeSize: v })}
+            />
+            <SliderRow
+              label="Torn fibre"
+              value={settings.tear}
+              min={0}
+              max={1}
+              step={0.01}
+              format={pct}
+              onChange={(v) => onChange({ tear: v })}
+            />
+          </Section>
+
+          <Separator />
+
+          {/* The strike */}
+          <Section
+            title="Cancellation"
+            action={
               <Switch
                 checked={settings.postmarkOn}
                 onCheckedChange={(v) => onChange({ postmarkOn: v })}
                 aria-label="Strike a postmark over the stamp"
               />
-            </div>
+            }
+          >
             {settings.postmarkOn && (
               <>
-                <div className="space-y-2">
-                  <Label className="text-xs">Style</Label>
-                  <Select
-                    value={settings.postmarkStyle}
-                    onValueChange={(v) =>
-                      onChange({ postmarkStyle: v as PostmarkStyle })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="both">Datestamp + bars</SelectItem>
-                      <SelectItem value="bars">Killer bars</SelectItem>
-                      <SelectItem value="datestamp">Datestamp only</SelectItem>
-                      <SelectItem value="grid">Grid cancel</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* only the dial carries lettering; bars and grids do not */}
+                <SelectRow
+                  label="Style"
+                  value={settings.postmarkStyle}
+                  onChange={(v) =>
+                    onChange({ postmarkStyle: v as PostmarkStyle })
+                  }
+                  options={[
+                    ["both", "Datestamp + bars"],
+                    ["bars", "Killer bars"],
+                    ["datestamp", "Datestamp only"],
+                    ["grid", "Grid cancel"],
+                  ]}
+                />
                 {(settings.postmarkStyle === "datestamp" ||
                   settings.postmarkStyle === "both") && (
                   <>
@@ -898,15 +899,12 @@ export function Sidebar({
                 />
               </>
             )}
-          </section>
+          </Section>
 
           <Separator />
 
-          {/* Lift */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Lift
-            </h2>
+          {/* Lifting a corner off the envelope */}
+          <Section title="Lift">
             <div className="space-y-2">
               <Label className="text-xs">Corner</Label>
               <div
@@ -970,15 +968,12 @@ export function Sidebar({
               format={pct}
               onChange={(v) => onChange({ shadow: v })}
             />
-          </section>
+          </Section>
 
           <Separator />
 
-          {/* Scene */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Scene
-            </h2>
+          {/* Studio */}
+          <Section title="Light & background">
             <SliderRow
               label="Light X"
               value={settings.light.x}
@@ -997,33 +992,23 @@ export function Sidebar({
               format={pct}
               onChange={(v) => onChange({ light: { ...settings.light, y: v } })}
             />
-            <div className="space-y-2">
-              <Label className="text-xs">Background</Label>
-              <Select
-                value={settings.background}
-                onValueChange={(v) =>
-                  onChange({ background: v as StampSettings["background"] })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="transparent">Transparent</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="black">Black</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </section>
+            <SelectRow
+              label="Background"
+              value={settings.background}
+              onChange={(v) =>
+                onChange({ background: v as StampSettings["background"] })
+              }
+              options={[
+                ["transparent", "Transparent"],
+                ["white", "White"],
+                ["black", "Black"],
+              ]}
+            />
+          </Section>
 
           <Separator />
 
-          {/* Settings */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Settings
-            </h2>
+          <Section title="Settings">
             <input
               ref={settingsFileRef}
               type="file"
@@ -1066,7 +1051,7 @@ export function Sidebar({
                 Reset
               </Button>
             </div>
-          </section>
+          </Section>
         </div>
       </ScrollArea>
     </aside>

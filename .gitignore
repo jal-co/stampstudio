@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 .pi/
 .vercel
+
+# local env files
+.env
+.env.*.local
+.env.local
+!.env.example
+
+# posthog wizard scratch
+.posthog-wizard-cache/

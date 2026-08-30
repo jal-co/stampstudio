@@ -50,6 +50,16 @@ export async function loadImageFile(file: File): Promise<LoadedImage> {
   return { bitmap, aspect: bitmap.width / bitmap.height, name: file.name }
 }
 
+/** Load a bundled template photograph by path. */
+export async function loadImageUrl(
+  url: string,
+  name: string,
+): Promise<LoadedImage> {
+  const blob = await (await fetch(url)).blob()
+  const bitmap = await createImageBitmap(blob)
+  return { bitmap, aspect: bitmap.width / bitmap.height, name }
+}
+
 function loadHtmlImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()

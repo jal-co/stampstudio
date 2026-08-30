@@ -355,9 +355,63 @@ function separateArt(
   return c
 }
 
+/** Ink coverage of the artwork: dark, opaque areas stand highest. */
+function inkArt(art: ImageBitmap, w: number, h: number): HTMLCanvasElement {
+  const c = document.createElement("canvas")
+  c.width = Math.max(1, Math.round(w))
+  c.height = Math.max(1, Math.round(h))
+  const ctx = c.getContext("2d", { willReadFrequently: true })!
+  ctx.drawImage(art, 0, 0, c.width, c.height)
+  const im = ctx.getImageData(0, 0, c.width, c.height)
+  const d = im.data
+  for (let i = 0; i < d.length; i += 4) {
+    const l = (d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722) / 255
+    d[i] = d[i + 1] = d[i + 2] = 0
+    d[i + 3] = Math.round(d[i + 3] * clamp01(1 - l * 0.85))
+  }
+  ctx.putImageData(im, 0, 0)
+  return c
+}
+
+/** Place the artwork in its area under the chosen fit, zoom and pan. */
+function drawArt(
+  ctx: CanvasRenderingContext2D,
+  art: HTMLCanvasElement,
+  area: Box,
+  s: StampSettings,
+) {
+  if (area.w < 4 || area.h < 4) return
+  const zoom = Math.max(0.05, s.artZoom)
+  let dw: number
+  let dh: number
+  if (s.artFit === "stretch") {
+    dw = area.w * zoom
+    dh = area.h * zoom
+  } else {
+    const sx = area.w / art.width
+    const sy = area.h / art.height
+    const k = (s.artFit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy)) * zoom
+    dw = art.width * k
+    dh = art.height * k
+  }
+  ctx.save()
+  // anything past the area is cropped away, so cover and zoom can overflow
+  ctx.beginPath()
+  ctx.rect(area.x, area.y, area.w, area.h)
+  ctx.clip()
+  ctx.drawImage(
+    art,
+    area.x + (area.w - dw) / 2 + s.artPos.x * area.w * 0.5,
+    area.y + (area.h - dh) / 2 - s.artPos.y * area.h * 0.5,
+    dw,
+    dh,
+  )
+  ctx.restore()
+}
+
 /**
- * Paint frame, artwork and lettering. `ink` mode paints the same marks in
- * flat black on transparent, which becomes the relief height field.
+ * Paint artwork, frame and lettering, in that order: the frame and the type
+ * are printed over the picture, so artwork can bleed to the paper edge.
  */
 function paintDesign(
   ctx: CanvasRenderingContext2D,
@@ -374,49 +428,27 @@ function paintDesign(
   ctx.strokeStyle = inkMode ? "#000" : s.inkColor
   ctx.globalAlpha = 1
 
-  let win: Box = { x: m, y: m, w: W - 2 * m, h: H - 2 * m }
-  if (s.designOn) {
-    paintFrame(ctx, s, win, unit)
-    const pad = s.frame === "none" ? unit : unit * 4
-    const top = s.country ? unit * 7 : 0
-    const bottom = s.denomination || s.caption ? unit * 8 : 0
-    win = {
-      x: win.x + pad,
-      y: win.y + pad + top,
-      w: win.w - 2 * pad,
-      h: win.h - 2 * pad - top - bottom,
-    }
-  }
-
-  if (art && win.w > 4 && win.h > 4) {
-    const scale = Math.min(win.w / art.width, win.h / art.height)
-    const aw = art.width * scale
-    const ah = art.height * scale
-    const ax = win.x + (win.w - aw) / 2
-    const ay = win.y + (win.h - ah) / 2
-    if (inkMode) {
-      // ink height comes from coverage: opaque dark areas stand highest
-      const tmp = document.createElement("canvas")
-      tmp.width = Math.max(1, Math.round(aw))
-      tmp.height = Math.max(1, Math.round(ah))
-      const tctx = tmp.getContext("2d", { willReadFrequently: true })!
-      tctx.drawImage(art, 0, 0, tmp.width, tmp.height)
-      const im = tctx.getImageData(0, 0, tmp.width, tmp.height)
-      const d = im.data
-      for (let i = 0; i < d.length; i += 4) {
-        const l = (d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722) / 255
-        d[i] = d[i + 1] = d[i + 2] = 0
-        d[i + 3] = Math.round(d[i + 3] * clamp01(1 - l * 0.85))
+  const outer: Box = { x: m, y: m, w: W - 2 * m, h: H - 2 * m }
+  let area: Box = { x: 0, y: 0, w: W, h: H }
+  if (!s.artBleed) {
+    area = outer
+    if (s.designOn) {
+      const pad = s.frame === "none" ? unit : unit * 4
+      const top = s.country ? unit * 7 : 0
+      const bottom = s.denomination || s.caption ? unit * 8 : 0
+      area = {
+        x: outer.x + pad,
+        y: outer.y + pad + top,
+        w: outer.w - 2 * pad,
+        h: outer.h - 2 * pad - top - bottom,
       }
-      tctx.putImageData(im, 0, 0)
-      ctx.drawImage(tmp, ax, ay)
-    } else {
-      ctx.drawImage(art, ax, ay, aw, ah)
     }
   }
 
+  if (art) drawArt(ctx, art, area, s)
+
   if (s.designOn) {
-    const outer = { x: m, y: m, w: W - 2 * m, h: H - 2 * m }
+    paintFrame(ctx, s, outer, unit)
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
     if (s.country) {
       ctx.font = `600 ${unit * 4.2}px ${SERIF}`
@@ -614,9 +646,9 @@ export function buildStampMaps(
   paintPaper(fctx, s, W, H)
 
   const artW = art ? Math.min(art.width, 1400) : 0
-  const separated = art
-    ? separateArt(art, artW, artW / (art.width / art.height), s)
-    : null
+  const artH = art ? artW / (art.width / art.height) : 0
+  const separated = art ? separateArt(art, artW, artH, s) : null
+  const coverage = art ? inkArt(art, artW, artH) : null
 
   // ink weight: fade the print into the paper, or lay it on heavy
   // the design is laid out on the paper, not on the texture: the texture
@@ -644,7 +676,7 @@ export function buildStampMaps(
   inkC.height = H
   const ictx = inkC.getContext("2d", { willReadFrequently: true })!
   ictx.translate(x0, y0)
-  paintDesign(ictx, s, separated, pw, ph, true)
+  paintDesign(ictx, s, coverage, pw, ph, true)
   paintPostmark(ictx, s, pw, ph, true)
   const ink8 = ictx.getImageData(0, 0, W, H).data
 

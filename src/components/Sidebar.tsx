@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import type {
+  ArtFit,
   EdgeStyle,
   FrameStyle,
   PeelDirection,
@@ -309,6 +310,70 @@ export function Sidebar({
                 </button>
               </div>
             )}
+            {imageName && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs">Fit</Label>
+                  <Select
+                    value={settings.artFit}
+                    onValueChange={(v) => onChange({ artFit: v as ArtFit })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contain">Fit inside</SelectItem>
+                      <SelectItem value="cover">Fill and crop</SelectItem>
+                      <SelectItem value="stretch">Stretch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs">
+                    Full bleed
+                    <span className="block text-[11px] font-normal text-muted-foreground">
+                      Frame prints over the picture
+                    </span>
+                  </Label>
+                  <Switch
+                    checked={settings.artBleed}
+                    onCheckedChange={(v) => onChange({ artBleed: v })}
+                    aria-label="Run the artwork to the paper edge"
+                  />
+                </div>
+                <SliderRow
+                  label="Zoom"
+                  value={settings.artZoom}
+                  min={0.25}
+                  max={3}
+                  step={0.01}
+                  format={(v) => `${v.toFixed(2)}\u00d7`}
+                  onChange={(v) => onChange({ artZoom: v })}
+                />
+                <SliderRow
+                  label="Position X"
+                  value={settings.artPos.x}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  format={(v) => v.toFixed(2)}
+                  onChange={(v) =>
+                    onChange({ artPos: { ...settings.artPos, x: v } })
+                  }
+                />
+                <SliderRow
+                  label="Position Y"
+                  value={settings.artPos.y}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  format={(v) => v.toFixed(2)}
+                  onChange={(v) =>
+                    onChange({ artPos: { ...settings.artPos, y: v } })
+                  }
+                />
+              </>
+            )}
           </section>
 
           <Separator />
@@ -544,18 +609,24 @@ export function Sidebar({
                     </SelectContent>
                   </Select>
                 </div>
-                <TextRow
-                  label="Town"
-                  value={settings.postmarkCity}
-                  placeholder="NEW YORK NY"
-                  onChange={(v) => onChange({ postmarkCity: v })}
-                />
-                <TextRow
-                  label="Date"
-                  value={settings.postmarkDate}
-                  placeholder="12 JUN 1978"
-                  onChange={(v) => onChange({ postmarkDate: v })}
-                />
+                {/* only the dial carries lettering; bars and grids do not */}
+                {(settings.postmarkStyle === "datestamp" ||
+                  settings.postmarkStyle === "both") && (
+                  <>
+                    <TextRow
+                      label="Town"
+                      value={settings.postmarkCity}
+                      placeholder="NEW YORK NY"
+                      onChange={(v) => onChange({ postmarkCity: v })}
+                    />
+                    <TextRow
+                      label="Date"
+                      value={settings.postmarkDate}
+                      placeholder="12 JUN 1978"
+                      onChange={(v) => onChange({ postmarkDate: v })}
+                    />
+                  </>
+                )}
                 <SliderRow
                   label="Strike angle"
                   value={settings.postmarkAngle}

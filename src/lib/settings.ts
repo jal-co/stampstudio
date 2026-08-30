@@ -6,6 +6,7 @@ export type StampFormat =
   | "wide"
 export type EdgeStyle = "perforated" | "wavy" | "rouletted" | "imperforate"
 export type PrintMethod = "engraved" | "offset" | "photogravure" | "typeset"
+export type ArtFit = "contain" | "cover" | "stretch"
 export type FrameStyle = "none" | "rule" | "classic" | "ornate"
 export type PostmarkStyle = "bars" | "datestamp" | "both" | "grid"
 export type Scene = "single" | "envelope" | "sheet"
@@ -66,6 +67,15 @@ export interface StampSettings {
   /** Design window inset from the paper edge, 0.02–0.2 */
   margin: number
 
+  /** How the artwork fills its area: fit inside, crop to fill, or distort */
+  artFit: ArtFit
+  /** Artwork runs to the paper edge, with the frame printed over it */
+  artBleed: boolean
+  /** Scale on top of the fit, 0.25–3 */
+  artZoom: number
+  /** Artwork pan, -1 to 1 in each axis */
+  artPos: { x: number; y: number }
+
   /** Cancellation overprint */
   postmarkOn: boolean
   postmarkStyle: PostmarkStyle
@@ -123,6 +133,11 @@ export const defaultSettings: StampSettings = {
   denomination: "13¢",
   caption: "",
   margin: 0.075,
+
+  artFit: "contain",
+  artBleed: false,
+  artZoom: 1,
+  artPos: { x: 0, y: 0 },
 
   postmarkOn: false,
   postmarkStyle: "both",

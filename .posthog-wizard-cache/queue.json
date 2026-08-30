@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "runId": "7acb731e-cf5a-45b1-a221-bf3b80302c89",
+  "tasks": [
+    {
+      "id": "d60a5f36-caea-4872-9c57-3c3284351d20",
+      "type": "install",
+      "label": "Add PostHog SDK",
+      "status": "pending",
+      "dependsOn": [],
+      "inputs": {},
+      "attempts": 0,
+      "maxAttempts": 2,
+      "enqueuedBy": "orchestrator",
+      "createdAt": "2026-08-30T20:51:04.253Z"
+    },
+    {
+      "id": "d3529dba-5d0d-4cf4-969a-47c27e3fdabd",
+      "type": "init",
+      "label": "Initialize PostHog",
+      "status": "pending",
+      "dependsOn": [],
+      "inputs": {},
+      "attempts": 0,
+      "maxAttempts": 2,
+      "enqueuedBy": "orchestrator",
+      "createdAt": "2026-08-30T20:51:04.253Z"
+    }
+  ]
+}

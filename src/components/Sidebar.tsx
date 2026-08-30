@@ -2,6 +2,7 @@ import { useRef, useState } from "react"
 import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
 import { ColorPickerField } from "@/components/ColorPickerField"
+import { presets } from "@/lib/presets"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import type {
   ArtFit,
+  DenomAnchor,
   EdgeStyle,
   FrameStyle,
   PeelDirection,
@@ -63,6 +65,7 @@ interface Props {
   settings: StampSettings
   imageName: string | null
   onChange: (patch: Partial<StampSettings>) => void
+  onPreset: (patch: Partial<StampSettings>) => void
   onUpload: (file: File) => void
   onRemove: () => void
   onExportSettings: () => void
@@ -208,6 +211,7 @@ export function Sidebar({
   settings,
   imageName,
   onChange,
+  onPreset,
   onUpload,
   onRemove,
   onExportSettings,
@@ -225,6 +229,32 @@ export function Sidebar({
       <Separator />
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-4 py-4">
+          {/* Presets */}
+          <section className="space-y-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Start from
+            </h2>
+            <div className="grid grid-cols-2 gap-1.5">
+              {presets.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  title={p.note}
+                  onClick={() => onPreset(p.patch)}
+                  className={cn(
+                    "rounded-lg border border-input px-2 py-2 text-left text-[11px] font-medium",
+                    "transition-[color,background-color,border-color,transform] duration-150 ease-out",
+                    "hover:border-ring/60 hover:bg-accent active:scale-[0.98]",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <Separator />
+
           {/* Press */}
           <section className="space-y-3">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -470,6 +500,7 @@ export function Sidebar({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="rect">Rectangle</SelectItem>
                       <SelectItem value="arch">Arch</SelectItem>
                       <SelectItem value="oval">Oval</SelectItem>
@@ -477,15 +508,35 @@ export function Sidebar({
                     </SelectContent>
                   </Select>
                 </div>
-                <SliderRow
-                  label="Vignette feather"
-                  value={settings.feather}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  format={pct}
-                  onChange={(v) => onChange({ feather: v })}
-                />
+                {settings.vignette !== "none" && (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs">Draw vignette</Label>
+                      <Switch
+                        checked={settings.vignetteRule}
+                        onCheckedChange={(v) => onChange({ vignetteRule: v })}
+                        aria-label="Rule the vignette outline"
+                      />
+                    </div>
+                    {settings.vignetteRule && (
+                      <ColorPickerField
+                        label="Vignette colour"
+                        value={settings.vignetteColor}
+                        swatches={inkSwatches}
+                        onChange={(hex) => onChange({ vignetteColor: hex })}
+                      />
+                    )}
+                    <SliderRow
+                      label="Vignette feather"
+                      value={settings.feather}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      format={pct}
+                      onChange={(v) => onChange({ feather: v })}
+                    />
+                  </>
+                )}
                 <div className="space-y-2">
                   <Label className="text-xs">Typeface</Label>
                   <Select
@@ -517,6 +568,58 @@ export function Sidebar({
                   placeholder="13¢"
                   onChange={(v) => onChange({ denomination: v })}
                 />
+                {settings.denomination && !settings.tablets && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Value corner</Label>
+                    <Select
+                      value={settings.denomAnchor}
+                      onValueChange={(v) =>
+                        onChange({ denomAnchor: v as DenomAnchor })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-left">Lower left</SelectItem>
+                        <SelectItem value="bottom-center">
+                          Lower centre
+                        </SelectItem>
+                        <SelectItem value="bottom-right">
+                          Lower right
+                        </SelectItem>
+                        <SelectItem value="top-left">Upper left</SelectItem>
+                        <SelectItem value="top-right">Upper right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {settings.denomination && (
+                  <>
+                    <SliderRow
+                      label="Value X"
+                      value={settings.denomPos.x}
+                      min={-0.5}
+                      max={0.5}
+                      step={0.005}
+                      format={(v) => v.toFixed(3)}
+                      onChange={(v) =>
+                        onChange({ denomPos: { ...settings.denomPos, x: v } })
+                      }
+                    />
+                    <SliderRow
+                      label="Value Y"
+                      value={settings.denomPos.y}
+                      min={-0.5}
+                      max={0.5}
+                      step={0.005}
+                      format={(v) => v.toFixed(3)}
+                      onChange={(v) =>
+                        onChange({ denomPos: { ...settings.denomPos, y: v } })
+                      }
+                    />
+                  </>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <Label className="text-xs">Curve the country line</Label>
                   <Switch

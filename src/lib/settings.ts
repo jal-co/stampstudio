@@ -8,7 +8,7 @@ export type EdgeStyle = "perforated" | "wavy" | "rouletted" | "imperforate"
 export type PrintMethod = "engraved" | "offset" | "photogravure" | "typeset"
 export type ArtFit = "contain" | "cover" | "stretch"
 export type FrameStyle = "none" | "rule" | "classic" | "ornate" | "arched"
-export type VignetteShape = "rect" | "arch" | "oval" | "circle"
+export type VignetteShape = "none" | "rect" | "arch" | "oval" | "circle"
 export type OrnamentStyle = "none" | "scroll" | "leaf" | "deco" | "rosette"
 export type Typeface =
   | "serif"
@@ -18,6 +18,12 @@ export type Typeface =
   | "typewriter"
   | "script"
 export type PostmarkStyle = "bars" | "datestamp" | "both" | "grid"
+export type DenomAnchor =
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right"
+  | "top-left"
+  | "top-right"
 export type Scene = "single" | "envelope" | "sheet"
 export type PeelDirection =
   | "top-left"
@@ -75,8 +81,12 @@ export interface StampSettings {
   ornament: OrnamentStyle
   /** Corner ornament size relative to the stamp, 0.04–0.22 */
   ornamentSize: number
-  /** Shape the picture is masked into */
+  /** Shape the picture is masked into, and ruled with */
   vignette: VignetteShape
+  /** Rule the vignette outline onto the sheet */
+  vignetteRule: boolean
+  /** Colour of the vignette rule */
+  vignetteColor: string
   /** Soft edge on the vignette mask, 0–1 */
   feather: number
   /** Curve the country line over the top of the vignette */
@@ -89,6 +99,10 @@ export interface StampSettings {
   country: string
   /** Face value, printed in the lower corner */
   denomination: string
+  /** Corner the value is set against */
+  denomAnchor: DenomAnchor
+  /** Value offset from its anchor, -0.5 to 0.5 of the design window */
+  denomPos: { x: number; y: number }
   /** Optional caption under the design window */
   caption: string
   /** Design window inset from the paper edge, 0.02–0.2 */
@@ -160,13 +174,17 @@ export const defaultSettings: StampSettings = {
   typeface: "serif",
   ornament: "none",
   ornamentSize: 0.11,
-  vignette: "rect",
+  vignette: "none",
+  vignetteRule: true,
+  vignetteColor: "#1d3f6e",
   feather: 0,
   countryArc: false,
   tablets: false,
   ribbon: false,
   country: "UNITED STATES POSTAGE",
   denomination: "13¢",
+  denomAnchor: "bottom-left",
+  denomPos: { x: 0, y: 0 },
   caption: "",
   margin: 0.075,
 

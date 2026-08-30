@@ -93,6 +93,13 @@ export default function App() {
     [],
   )
 
+  // a preset is a whole look, so it replaces the sheet instead of layering
+  // onto whatever the sliders were left at
+  const applyPreset = useCallback(
+    (p: Partial<StampSettings>) => setSettings({ ...defaultSettings, ...p }),
+    [],
+  )
+
   const handleUpload = useCallback(async (file: File) => {
     try {
       const loaded = await loadImageFile(file)
@@ -304,6 +311,7 @@ export default function App() {
         settings={settings}
         imageName={imageName}
         onChange={patch}
+        onPreset={applyPreset}
         onUpload={handleUpload}
         onRemove={handleRemoveImage}
         onExportSettings={handleExportSettings}

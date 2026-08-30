@@ -1,7 +1,7 @@
 {
   "name": "stampstudio",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
     "@fontsource/libre-baskerville": "^5.3.0",
     "@fontsource/pinyon-script": "^5.3.0",
     "@fontsource/special-elite": "^5.3.0",
+    "@openpanel/web": "^1.4.1",
     "@react-stately/color": "^3.10.1",
     "@tailwindcss/vite": "^4.3.3",
     "@vercel/analytics": "^2.0.1",

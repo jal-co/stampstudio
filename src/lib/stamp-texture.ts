@@ -435,6 +435,8 @@ function paintDesign(
   W: number,
   H: number,
   inkMode: boolean,
+  /** Paper keyline left outside a full-bleed print, in px */
+  bleedInset: number,
 ) {
   const unit = Math.min(W, H) / 110
   const m = Math.min(W, H) * s.margin
@@ -442,7 +444,14 @@ function paintDesign(
   ctx.globalAlpha = 1
 
   const outer: Box = { x: m, y: m, w: W - 2 * m, h: H - 2 * m }
-  let area: Box = { x: 0, y: 0, w: W, h: H }
+  // a die cut through the picture reads as a sticker, so a bleeding print
+  // still stops short of a wave or a roulette and leaves paper for the cut
+  let area: Box = {
+    x: bleedInset,
+    y: bleedInset,
+    w: W - 2 * bleedInset,
+    h: H - 2 * bleedInset,
+  }
   if (!s.artBleed) {
     area = outer
     if (s.designOn) {
@@ -679,11 +688,15 @@ export function buildStampMaps(
   const ph = y1 - y0
   fctx.save()
   fctx.translate(x0, y0)
+  // perforations punch through a full-bleed print; a wave or a roulette is
+  // cut with a die, and those issues carry a paper keyline around the art
+  const bleedInset =
+    s.edge === "wavy" ? g.holeR * 1.5 : s.edge === "rouletted" ? g.holeR * 0.6 : 0
   fctx.globalAlpha = clamp01(Math.min(s.ink, 1))
-  paintDesign(fctx, s, separated, pw, ph, false)
+  paintDesign(fctx, s, separated, pw, ph, false, bleedInset)
   if (s.ink > 1) {
     fctx.globalAlpha = clamp01((s.ink - 1) * 0.9)
-    paintDesign(fctx, s, separated, pw, ph, false)
+    paintDesign(fctx, s, separated, pw, ph, false, bleedInset)
   }
   fctx.globalAlpha = 1
   paintPostmark(fctx, s, pw, ph, false)
@@ -698,7 +711,7 @@ export function buildStampMaps(
   inkC.height = H
   const ictx = inkC.getContext("2d", { willReadFrequently: true })!
   ictx.translate(x0, y0)
-  paintDesign(ictx, s, coverage, pw, ph, true)
+  paintDesign(ictx, s, coverage, pw, ph, true, bleedInset)
   paintPostmark(ictx, s, pw, ph, true)
   const ink8 = ictx.getImageData(0, 0, W, H).data
 

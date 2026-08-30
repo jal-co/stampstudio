@@ -1,4 +1,4 @@
-import { formatAspect, type StampSettings } from "./settings"
+import { formatAspect, type StampSettings, type Typeface } from "./settings"
 
 /** Long edge of the baked face texture, in pixels. */
 const TEX_LONG = 1100
@@ -234,7 +234,22 @@ function arcText(
   }
 }
 
-const SERIF = 'Georgia, "Times New Roman", "Nimbus Roman", serif'
+/*
+ * Faces are system stacks so the bake never waits on a webfont download and
+ * canvas text renders on the first frame. The postmark keeps its own face:
+ * a datestamp was cut by a different shop than the stamp.
+ */
+const FONT_STACKS: Record<Typeface, string> = {
+  serif: 'Georgia, "Times New Roman", "Nimbus Roman", serif',
+  didone: '"Didot", "Bodoni 72", "Playfair Display", Georgia, serif',
+  grotesque: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  condensed:
+    '"Arial Narrow", "Helvetica Neue Condensed", "Liberation Sans Narrow", Impact, sans-serif',
+  typewriter: '"Courier New", "Nimbus Mono PS", monospace',
+  script: '"Snell Roundhand", "Brush Script MT", "Apple Chancery", cursive',
+}
+
+const POSTMARK_FONT = 'Georgia, "Times New Roman", "Nimbus Roman", serif'
 
 interface Box {
   x: number
@@ -424,8 +439,6 @@ function paintDesign(
   const unit = Math.min(W, H) / 110
   const m = Math.min(W, H) * s.margin
   ctx.save()
-  ctx.fillStyle = inkMode ? "#000" : s.inkColor
-  ctx.strokeStyle = inkMode ? "#000" : s.inkColor
   ctx.globalAlpha = 1
 
   const outer: Box = { x: m, y: m, w: W - 2 * m, h: H - 2 * m }
@@ -434,8 +447,11 @@ function paintDesign(
     area = outer
     if (s.designOn) {
       const pad = s.frame === "none" ? unit : unit * 4
-      const top = s.country ? unit * 7 : 0
-      const bottom = s.denomination || s.caption ? unit * 8 : 0
+      // filling means filling the whole frame; only "fit inside" keeps
+      // clear space for the country line and the denomination
+      const reserve = s.artFit === "contain"
+      const top = reserve && s.country ? unit * 7 : 0
+      const bottom = reserve && (s.denomination || s.caption) ? unit * 8 : 0
       area = {
         x: outer.x + pad,
         y: outer.y + pad + top,
@@ -447,11 +463,17 @@ function paintDesign(
 
   if (art) drawArt(ctx, art, area, s)
 
+  // the frame and the type are a second plate, printed over the picture
+  ctx.fillStyle = inkMode ? "#000" : s.frameColor
+  ctx.strokeStyle = inkMode ? "#000" : s.frameColor
+
+  const face = FONT_STACKS[s.typeface] ?? FONT_STACKS.serif
+
   if (s.designOn) {
     paintFrame(ctx, s, outer, unit)
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
     if (s.country) {
-      ctx.font = `600 ${unit * 4.2}px ${SERIF}`
+      ctx.font = `600 ${unit * 4.2}px ${face}`
       ctx.textBaseline = "alphabetic"
       trackedText(
         ctx,
@@ -462,7 +484,7 @@ function paintDesign(
       )
     }
     if (s.denomination) {
-      ctx.font = `700 ${unit * 7}px ${SERIF}`
+      ctx.font = `700 ${unit * 7}px ${face}`
       ctx.textBaseline = "alphabetic"
       ctx.textAlign = "left"
       ctx.fillText(
@@ -472,7 +494,7 @@ function paintDesign(
       )
     }
     if (s.caption) {
-      ctx.font = `400 ${unit * 3.2}px ${SERIF}`
+      ctx.font = `400 ${unit * 3.2}px ${face}`
       trackedText(
         ctx,
         s.caption,
@@ -547,10 +569,10 @@ function paintPostmark(
     ctx.arc(0, 0, dial - unit * 2, 0, Math.PI * 2)
     ctx.stroke()
     ctx.textBaseline = "middle"
-    ctx.font = `600 ${unit * 3.4}px ${SERIF}`
+    ctx.font = `600 ${unit * 3.4}px ${POSTMARK_FONT}`
     arcText(ctx, s.postmarkCity.toUpperCase(), 0, 0, dial - unit * 4.6, -Math.PI / 2, false)
     ctx.textAlign = "center"
-    ctx.font = `600 ${unit * 3.8}px ${SERIF}`
+    ctx.font = `600 ${unit * 3.8}px ${POSTMARK_FONT}`
     ctx.fillText(s.postmarkDate.toUpperCase(), 0, 0)
     ctx.lineWidth = unit * 0.7
     ctx.beginPath()

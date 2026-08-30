@@ -197,9 +197,10 @@ void main() {
   vec2 grad = vec2(ix - iC, iy - iC) * (uRelief * 9.0) + paperGrad * 8.0;
   N = perturbNormal(N, vWorldPos, vUv, grad);
 
-  // the torn edge exposes unprinted fibre, a shade brighter than the face
-  albedo = mix(albedo, mix(albedo, vec3(0.9), 0.35),
-               1.0 - smoothstep(0.0, 0.55, edge));
+  // the torn edge catches light on raised fibre, so it lifts the colour it
+  // already has instead of washing to paper white; a full-bleed print keeps
+  // its ink right out to the teeth
+  albedo *= 1.0 + 0.22 * (1.0 - smoothstep(0.0, 0.55, edge));
 
   vec3 R = reflect(-V, N);
   float cosT = clamp(dot(N, V), 0.0, 1.0);
@@ -368,6 +369,8 @@ export class StampRenderer {
       s.ink,
       s.designOn,
       s.frame,
+      s.frameColor,
+      s.typeface,
       s.country,
       s.denomination,
       s.caption,

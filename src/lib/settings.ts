@@ -8,6 +8,13 @@ export type EdgeStyle = "perforated" | "wavy" | "rouletted" | "imperforate"
 export type PrintMethod = "engraved" | "offset" | "photogravure" | "typeset"
 export type ArtFit = "contain" | "cover" | "stretch"
 export type FrameStyle = "none" | "rule" | "classic" | "ornate"
+export type Typeface =
+  | "serif"
+  | "didone"
+  | "grotesque"
+  | "condensed"
+  | "typewriter"
+  | "script"
 export type PostmarkStyle = "bars" | "datestamp" | "both" | "grid"
 export type Scene = "single" | "envelope" | "sheet"
 export type PeelDirection =
@@ -58,6 +65,10 @@ export interface StampSettings {
   designOn: boolean
   /** Border treatment around the design window */
   frame: FrameStyle
+  /** Colour of the frame rules, ornaments and lettering */
+  frameColor: string
+  /** Face used for the country line, denomination and caption */
+  typeface: Typeface
   /** Country line, printed across the top */
   country: string
   /** Face value, printed in the lower corner */
@@ -129,6 +140,8 @@ export const defaultSettings: StampSettings = {
 
   designOn: true,
   frame: "classic",
+  frameColor: "#1d3f6e",
+  typeface: "serif",
   country: "UNITED STATES POSTAGE",
   denomination: "13¢",
   caption: "",

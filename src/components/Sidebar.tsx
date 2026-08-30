@@ -1,6 +1,7 @@
 import { useRef, useState } from "react"
 import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
+import { ColorPickerField } from "@/components/ColorPickerField"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ import type {
   PrintMethod,
   StampFormat,
   StampSettings,
+  Typeface,
 } from "@/lib/settings"
 
 // one-tap press presets; each patches the process plus its ink behaviour
@@ -127,6 +129,16 @@ function TextRow({
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
+
+// inks a postal printer would actually have on the shelf
+const inkSwatches = [
+  "#1d3f6e",
+  "#8a1c2b",
+  "#1f5c3a",
+  "#5a3a86",
+  "#a8571c",
+  "#2b2b2b",
+]
 
 // 3×3 spatial pad, row-major; null is the inert center
 const directionPad: ({ value: PeelDirection; arrow: string } | null)[] = [
@@ -239,16 +251,12 @@ export function Sidebar({
                 </button>
               ))}
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label className="text-xs">Ink colour</Label>
-              <input
-                type="color"
-                aria-label="Ink colour"
-                value={settings.inkColor}
-                onChange={(e) => onChange({ inkColor: e.target.value })}
-                className="h-7 w-14 cursor-pointer rounded-md border bg-transparent p-0.5"
-              />
-            </div>
+            <ColorPickerField
+              label="Ink colour"
+              value={settings.inkColor}
+              swatches={inkSwatches}
+              onChange={(hex) => onChange({ inkColor: hex })}
+            />
             <SliderRow
               label="Ink weight"
               value={settings.ink}
@@ -409,6 +417,25 @@ export function Sidebar({
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Typeface</Label>
+                  <Select
+                    value={settings.typeface}
+                    onValueChange={(v) => onChange({ typeface: v as Typeface })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="serif">Engraved serif</SelectItem>
+                      <SelectItem value="didone">Didone</SelectItem>
+                      <SelectItem value="grotesque">Grotesque</SelectItem>
+                      <SelectItem value="condensed">Condensed gothic</SelectItem>
+                      <SelectItem value="typewriter">Typewriter</SelectItem>
+                      <SelectItem value="script">Script</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <TextRow
                   label="Country line"
                   value={settings.country}
@@ -426,6 +453,12 @@ export function Sidebar({
                   value={settings.caption}
                   placeholder="optional"
                   onChange={(v) => onChange({ caption: v })}
+                />
+                <ColorPickerField
+                  label="Frame & lettering colour"
+                  value={settings.frameColor}
+                  swatches={inkSwatches}
+                  onChange={(hex) => onChange({ frameColor: hex })}
                 />
                 <SliderRow
                   label="Margin"

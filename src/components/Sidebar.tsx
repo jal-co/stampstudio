@@ -24,6 +24,7 @@ import type {
   PeelDirection,
   PostmarkStyle,
   PrintMethod,
+  OrnamentStyle,
   StampFormat,
   StampSettings,
   Typeface,
@@ -426,6 +427,37 @@ export function Sidebar({
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Corner ornament</Label>
+                  <Select
+                    value={settings.ornament}
+                    onValueChange={(v) =>
+                      onChange({ ornament: v as OrnamentStyle })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="scroll">Engraver's scroll</SelectItem>
+                      <SelectItem value="leaf">Fleuron</SelectItem>
+                      <SelectItem value="rosette">Rosette</SelectItem>
+                      <SelectItem value="deco">Deco steps</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {settings.ornament !== "none" && (
+                  <SliderRow
+                    label="Ornament size"
+                    value={settings.ornamentSize}
+                    min={0.04}
+                    max={0.22}
+                    step={0.005}
+                    format={(v) => v.toFixed(3)}
+                    onChange={(v) => onChange({ ornamentSize: v })}
+                  />
+                )}
                 <div className="space-y-2">
                   <Label className="text-xs">Vignette</Label>
                   <Select

@@ -9,6 +9,7 @@ export type PrintMethod = "engraved" | "offset" | "photogravure" | "typeset"
 export type ArtFit = "contain" | "cover" | "stretch"
 export type FrameStyle = "none" | "rule" | "classic" | "ornate" | "arched"
 export type VignetteShape = "rect" | "arch" | "oval" | "circle"
+export type OrnamentStyle = "none" | "scroll" | "leaf" | "deco" | "rosette"
 export type Typeface =
   | "serif"
   | "didone"
@@ -70,6 +71,10 @@ export interface StampSettings {
   frameColor: string
   /** Face used for the country line, denomination and caption */
   typeface: Typeface
+  /** Ornament struck into each corner of the frame */
+  ornament: OrnamentStyle
+  /** Corner ornament size relative to the stamp, 0.04–0.22 */
+  ornamentSize: number
   /** Shape the picture is masked into */
   vignette: VignetteShape
   /** Soft edge on the vignette mask, 0–1 */
@@ -153,6 +158,8 @@ export const defaultSettings: StampSettings = {
   frame: "classic",
   frameColor: "#1d3f6e",
   typeface: "serif",
+  ornament: "none",
+  ornamentSize: 0.11,
   vignette: "rect",
   feather: 0,
   countryArc: false,

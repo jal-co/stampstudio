@@ -2,6 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/libre-baskerville/latin-400.css";
+@import "@fontsource/libre-baskerville/latin-700.css";
+@import "@fontsource-variable/playfair-display/wght.css";
+@import "@fontsource-variable/cinzel/wght.css";
+@import "@fontsource-variable/oswald/wght.css";
+@import "@fontsource/special-elite/latin-400.css";
+@import "@fontsource/pinyon-script/latin-400.css";
 
 @custom-variant dark (&:is(.dark *));
 

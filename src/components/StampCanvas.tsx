@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { loadStampFonts } from "@/lib/fonts"
 import { StampRenderer } from "@/lib/stamp-renderer"
 import type { StampSettings } from "@/lib/settings"
 import { cn } from "@/lib/utils"
@@ -38,6 +39,18 @@ export function StampCanvas({
   useEffect(() => {
     rendererRef.current?.setImage(image)
   }, [image])
+
+  // canvas text falls back to a system face until the webfonts arrive, so
+  // the sheet is baked again once they do
+  useEffect(() => {
+    let live = true
+    void loadStampFonts().then(() => {
+      if (live) rendererRef.current?.invalidate()
+    })
+    return () => {
+      live = false
+    }
+  }, [])
 
   // continuous loop so the sheen and fibre keep moving with the pointer
   useEffect(() => {

@@ -344,6 +344,11 @@ export class StampRenderer {
     this.mapsKey = ""
   }
 
+  /** Force a re-bake, e.g. once the lettering faces have loaded. */
+  invalidate() {
+    this.mapsKey = ""
+  }
+
   /** Pointer position in [-1, 1]; the stamp tilts toward it. */
   setTilt(x: number, y: number) {
     this.tiltTarget.set(x, y)
@@ -371,6 +376,8 @@ export class StampRenderer {
       s.frame,
       s.frameColor,
       s.typeface,
+      s.ornament,
+      s.ornamentSize,
       s.vignette,
       s.feather,
       s.countryArc,

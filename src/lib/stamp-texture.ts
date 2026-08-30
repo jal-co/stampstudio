@@ -1,4 +1,6 @@
-import { formatAspect, type StampSettings, type Typeface } from "./settings"
+import { FONT_STACKS, POSTMARK_FONT } from "./fonts"
+import { paintOrnament } from "./ornaments"
+import { formatAspect, type StampSettings } from "./settings"
 
 /** Long edge of the baked face texture, in pixels. */
 const TEX_LONG = 1100
@@ -233,23 +235,6 @@ function arcText(
     a += (dir * widths[i]) / (2 * r)
   }
 }
-
-/*
- * Faces are system stacks so the bake never waits on a webfont download and
- * canvas text renders on the first frame. The postmark keeps its own face:
- * a datestamp was cut by a different shop than the stamp.
- */
-const FONT_STACKS: Record<Typeface, string> = {
-  serif: 'Georgia, "Times New Roman", "Nimbus Roman", serif',
-  didone: '"Didot", "Bodoni 72", "Playfair Display", Georgia, serif',
-  grotesque: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-  condensed:
-    '"Arial Narrow", "Helvetica Neue Condensed", "Liberation Sans Narrow", Impact, sans-serif',
-  typewriter: '"Courier New", "Nimbus Mono PS", monospace',
-  script: '"Snell Roundhand", "Brush Script MT", "Apple Chancery", cursive',
-}
-
-const POSTMARK_FONT = 'Georgia, "Times New Roman", "Nimbus Roman", serif'
 
 interface Box {
   x: number
@@ -568,6 +553,22 @@ function paintDesign(
 
   if (s.designOn) {
     paintFrame(ctx, s, outer, win, unit)
+    if (s.ornament !== "none") {
+      // struck inside the outer rule, each corner mirrored to face inward
+      const os = s.ornamentSize * Math.min(W, H)
+      const inset = s.frame === "none" ? unit * 0.5 : unit * 3
+      const l = outer.x + inset
+      const t = outer.y + inset
+      const r = outer.x + outer.w - inset
+      const b = outer.y + outer.h - inset
+      paintOrnament(ctx, s.ornament, l, t, os, false, false)
+      paintOrnament(ctx, s.ornament, r, t, os, true, false)
+      // the lower corners belong to the value tablets when those are set
+      if (!s.tablets) {
+        paintOrnament(ctx, s.ornament, l, b, os, false, true)
+        paintOrnament(ctx, s.ornament, r, b, os, true, true)
+      }
+    }
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
     if (s.country && s.countryArc) {
       // bent over the top of the vignette, the way the 1922 issues set it

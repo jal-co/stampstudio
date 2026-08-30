@@ -464,7 +464,10 @@ function drawArt(
   } else {
     const sx = area.w / art.width
     const sy = area.h / art.height
-    const k = (s.artFit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy)) * zoom
+    // a shaped vignette is filled by default: a picture fitted inside an
+    // oval reads as a rectangle sitting in a hole
+    const fill = s.artFit === "cover" || shape !== "rect"
+    const k = (fill ? Math.max(sx, sy) : Math.min(sx, sy)) * zoom
     dw = art.width * k
     dh = art.height * k
   }
@@ -530,26 +533,31 @@ function paintDesign(
   }
   const tabletBand = s.designOn && (s.tablets || s.ribbon) ? unit * 12 : 0
   const arcBand = s.designOn && s.countryArc && s.country ? unit * 8 : 0
-  if (!s.artBleed) {
-    area = outer
-    if (s.designOn) {
-      const pad = s.frame === "none" ? unit : unit * 4
-      // filling means filling the whole frame; only "fit inside" keeps
-      // clear space for the country line and the denomination
-      const reserve = s.artFit === "contain"
-      const top = arcBand || (reserve && s.country ? unit * 7 : 0)
-      const bottom =
-        tabletBand || (reserve && (s.denomination || s.caption) ? unit * 8 : 0)
-      area = {
-        x: outer.x + pad,
-        y: outer.y + pad + top,
-        w: outer.w - 2 * pad,
-        h: outer.h - 2 * pad - top - bottom,
-      }
+
+  // the design window: where a frame rule or a vignette outline sits. It is
+  // fixed to the frame, so a full-bleed print never drags the shape out with
+  // the picture.
+  let win: Box = outer
+  if (s.designOn) {
+    const pad = s.frame === "none" ? unit : unit * 4
+    // filling means filling the whole frame; only "fit inside" keeps clear
+    // space for the country line and the denomination
+    const reserve = s.artFit === "contain"
+    const top = arcBand || (reserve && s.country ? unit * 7 : 0)
+    const bottom =
+      tabletBand || (reserve && (s.denomination || s.caption) ? unit * 8 : 0)
+    win = {
+      x: outer.x + pad,
+      y: outer.y + pad + top,
+      w: outer.w - 2 * pad,
+      h: outer.h - 2 * pad - top - bottom,
     }
   }
 
-  const shape = s.artBleed ? "rect" : s.vignette
+  // a shaped vignette is the mask, so the picture is held to it and cannot
+  // bleed; only a rectangular window can run off the paper
+  const shape = s.vignette
+  if (shape !== "rect" || !s.artBleed) area = win
   if (art) drawArt(ctx, art, area, s, shape)
 
   // the frame and the type are a second plate, printed over the picture
@@ -559,24 +567,22 @@ function paintDesign(
   const face = FONT_STACKS[s.typeface] ?? FONT_STACKS.serif
 
   if (s.designOn) {
-    paintFrame(ctx, s, outer, area, unit)
+    paintFrame(ctx, s, outer, win, unit)
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
     if (s.country && s.countryArc) {
       // bent over the top of the vignette, the way the 1922 issues set it
       const r =
         shape === "circle" || shape === "oval"
-          ? Math.min(area.w, area.h) / 2
-          : Math.min(area.w / 2, area.h * 0.72)
+          ? Math.min(win.w, win.h) / 2
+          : Math.min(win.w / 2, win.h * 0.72)
       const cy =
-        shape === "circle" || shape === "oval"
-          ? area.y + area.h / 2
-          : area.y + r
+        shape === "circle" || shape === "oval" ? win.y + win.h / 2 : win.y + r
       ctx.font = `600 ${unit * 4}px ${face}`
       ctx.textBaseline = "middle"
       arcText(
         ctx,
         s.country.toUpperCase(),
-        area.x + area.w / 2,
+        win.x + win.w / 2,
         cy,
         r + unit * 3.4,
         -Math.PI / 2,

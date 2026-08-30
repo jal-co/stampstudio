@@ -337,19 +337,26 @@ export function Sidebar({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-xs">
-                    Full bleed
-                    <span className="block text-[11px] font-normal text-muted-foreground">
-                      Frame prints over the picture
-                    </span>
-                  </Label>
-                  <Switch
-                    checked={settings.artBleed}
-                    onCheckedChange={(v) => onChange({ artBleed: v })}
-                    aria-label="Run the artwork to the paper edge"
-                  />
-                </div>
+                {settings.vignette === "rect" ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="text-xs">
+                      Full bleed
+                      <span className="block text-[11px] font-normal text-muted-foreground">
+                        Frame prints over the picture
+                      </span>
+                    </Label>
+                    <Switch
+                      checked={settings.artBleed}
+                      onCheckedChange={(v) => onChange({ artBleed: v })}
+                      aria-label="Run the artwork to the paper edge"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    The picture is held to the {settings.vignette} vignette, so
+                    it cannot bleed to the paper edge.
+                  </p>
+                )}
                 <SliderRow
                   label="Zoom"
                   value={settings.artZoom}

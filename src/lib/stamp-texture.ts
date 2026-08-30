@@ -1,10 +1,6 @@
 import { FONT_STACKS, POSTMARK_FONT } from "./fonts"
 import { paintOrnament } from "./ornaments"
-import {
-  formatAspect,
-  type DenomAnchor,
-  type StampSettings,
-} from "./settings"
+import { formatAspect, type StampSettings } from "./settings"
 
 /** Long edge of the baked face texture, in pixels. */
 const TEX_LONG = 1100
@@ -531,10 +527,9 @@ function paintDesign(
   let win: Box = outer
   if (s.designOn) {
     const pad = s.frame === "none" ? unit : unit * 4
-    // lettering needs clean paper to read against, so the window gives up a
-    // band for it whenever the picture is held to a window at all. Only a
-    // full-frame print with no vignette lets type fall over the picture.
-    const reserve = s.artFit === "contain" || s.vignette !== "none"
+    // filling means filling the whole frame; only "fit inside" keeps clear
+    // space for the country line and the denomination
+    const reserve = s.artFit === "contain"
     const top = arcBand || (reserve && s.country ? unit * 7 : 0)
     const bottom =
       tabletBand || (reserve && (s.denomination || s.caption) ? unit * 8 : 0)
@@ -577,19 +572,12 @@ function paintDesign(
       const t = outer.y + inset
       const r = outer.x + outer.w - inset
       const b = outer.y + outer.h - inset
-      // a corner is given up to whatever the value is sitting in
-      const taken = (corner: DenomAnchor) =>
-        s.denomination !== "" &&
-        (s.tablets
-          ? corner.startsWith("bottom")
-          : s.denomAnchor === corner)
-      if (!taken("top-left")) paintOrnament(ctx, s.ornament, l, t, os, false, false)
-      if (!taken("top-right")) paintOrnament(ctx, s.ornament, r, t, os, true, false)
-      {
-        if (!taken("bottom-left"))
-          paintOrnament(ctx, s.ornament, l, b, os, false, true)
-        if (!taken("bottom-right"))
-          paintOrnament(ctx, s.ornament, r, b, os, true, true)
+      paintOrnament(ctx, s.ornament, l, t, os, false, false)
+      paintOrnament(ctx, s.ornament, r, t, os, true, false)
+      // the lower corners belong to the value tablets when those are set
+      if (!s.tablets) {
+        paintOrnament(ctx, s.ornament, l, b, os, false, true)
+        paintOrnament(ctx, s.ornament, r, b, os, true, true)
       }
     }
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
@@ -672,13 +660,12 @@ function paintDesign(
       ctx.font = `700 ${unit * 7}px ${face}`
       ctx.textBaseline = "alphabetic"
       ctx.textAlign = left ? "left" : right ? "right" : "center"
-      const band = s.frame === "none" ? unit * 1.5 : unit * 6
       const ax = left
-        ? outer.x + band
+        ? outer.x + inset
         : right
-          ? outer.x + outer.w - band
+          ? outer.x + outer.w - inset
           : outer.x + outer.w / 2
-      const ay = top ? outer.y + band + unit * 6 : outer.y + outer.h - band
+      const ay = top ? outer.y + inset + unit * 6 : footY - unit * 0.5
       ctx.fillText(s.denomination, ax + dnx, ay + dny)
     }
     if (s.caption && s.ribbon) {

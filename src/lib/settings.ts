@@ -7,7 +7,8 @@ export type StampFormat =
 export type EdgeStyle = "perforated" | "wavy" | "rouletted" | "imperforate"
 export type PrintMethod = "engraved" | "offset" | "photogravure" | "typeset"
 export type ArtFit = "contain" | "cover" | "stretch"
-export type FrameStyle = "none" | "rule" | "classic" | "ornate"
+export type FrameStyle = "none" | "rule" | "classic" | "ornate" | "arched"
+export type VignetteShape = "rect" | "arch" | "oval" | "circle"
 export type Typeface =
   | "serif"
   | "didone"
@@ -69,6 +70,16 @@ export interface StampSettings {
   frameColor: string
   /** Face used for the country line, denomination and caption */
   typeface: Typeface
+  /** Shape the picture is masked into */
+  vignette: VignetteShape
+  /** Soft edge on the vignette mask, 0–1 */
+  feather: number
+  /** Curve the country line over the top of the vignette */
+  countryArc: boolean
+  /** Print the value in a tablet in each lower corner */
+  tablets: boolean
+  /** Print the caption on a ribbon under the vignette */
+  ribbon: boolean
   /** Country line, printed across the top */
   country: string
   /** Face value, printed in the lower corner */
@@ -142,6 +153,11 @@ export const defaultSettings: StampSettings = {
   frame: "classic",
   frameColor: "#1d3f6e",
   typeface: "serif",
+  vignette: "rect",
+  feather: 0,
+  countryArc: false,
+  tablets: false,
+  ribbon: false,
   country: "UNITED STATES POSTAGE",
   denomination: "13¢",
   caption: "",

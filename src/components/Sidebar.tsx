@@ -27,6 +27,7 @@ import type {
   StampFormat,
   StampSettings,
   Typeface,
+  VignetteShape,
 } from "@/lib/settings"
 
 // one-tap press presets; each patches the process plus its ink behaviour
@@ -414,9 +415,38 @@ export function Sidebar({
                       <SelectItem value="rule">Single rule</SelectItem>
                       <SelectItem value="classic">Classic corners</SelectItem>
                       <SelectItem value="ornate">Ornate pearls</SelectItem>
+                      <SelectItem value="arched">Arched vignette</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Vignette</Label>
+                  <Select
+                    value={settings.vignette}
+                    onValueChange={(v) =>
+                      onChange({ vignette: v as VignetteShape })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rect">Rectangle</SelectItem>
+                      <SelectItem value="arch">Arch</SelectItem>
+                      <SelectItem value="oval">Oval</SelectItem>
+                      <SelectItem value="circle">Circle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <SliderRow
+                  label="Vignette feather"
+                  value={settings.feather}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  format={pct}
+                  onChange={(v) => onChange({ feather: v })}
+                />
                 <div className="space-y-2">
                   <Label className="text-xs">Typeface</Label>
                   <Select
@@ -448,12 +478,36 @@ export function Sidebar({
                   placeholder="13¢"
                   onChange={(v) => onChange({ denomination: v })}
                 />
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs">Curve the country line</Label>
+                  <Switch
+                    checked={settings.countryArc}
+                    onCheckedChange={(v) => onChange({ countryArc: v })}
+                    aria-label="Bend the country line over the vignette"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs">Corner value tablets</Label>
+                  <Switch
+                    checked={settings.tablets}
+                    onCheckedChange={(v) => onChange({ tablets: v })}
+                    aria-label="Print the value in both lower corners"
+                  />
+                </div>
                 <TextRow
                   label="Caption"
                   value={settings.caption}
                   placeholder="optional"
                   onChange={(v) => onChange({ caption: v })}
                 />
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-xs">Caption on a ribbon</Label>
+                  <Switch
+                    checked={settings.ribbon}
+                    onCheckedChange={(v) => onChange({ ribbon: v })}
+                    aria-label="Print the caption on a ribbon"
+                  />
+                </div>
                 <ColorPickerField
                   label="Frame & lettering colour"
                   value={settings.frameColor}

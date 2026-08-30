@@ -258,11 +258,52 @@ interface Box {
   h: number
 }
 
+/**
+ * Outline of the picture window. An arch is a rectangle capped with a half
+ * round, the shape the 1922 high values used to sit a vignette under a
+ * curved country line.
+ */
+function vignettePath(
+  ctx: CanvasRenderingContext2D,
+  shape: StampSettings["vignette"],
+  b: Box,
+) {
+  ctx.beginPath()
+  if (shape === "circle") {
+    const r = Math.min(b.w, b.h) / 2
+    ctx.arc(b.x + b.w / 2, b.y + b.h / 2, r, 0, Math.PI * 2)
+  } else if (shape === "oval") {
+    ctx.ellipse(
+      b.x + b.w / 2,
+      b.y + b.h / 2,
+      b.w / 2,
+      b.h / 2,
+      0,
+      0,
+      Math.PI * 2,
+    )
+  } else if (shape === "arch") {
+    // the top corners round off at the same radius, so a square box domes
+    // into a half round and a wide one keeps flat shoulders
+    const r = Math.min(b.w / 2, b.h * 0.72)
+    ctx.moveTo(b.x, b.y + b.h)
+    ctx.lineTo(b.x, b.y + r)
+    ctx.arcTo(b.x, b.y, b.x + r, b.y, r)
+    ctx.lineTo(b.x + b.w - r, b.y)
+    ctx.arcTo(b.x + b.w, b.y, b.x + b.w, b.y + r, r)
+    ctx.lineTo(b.x + b.w, b.y + b.h)
+    ctx.closePath()
+  } else {
+    ctx.rect(b.x, b.y, b.w, b.h)
+  }
+}
+
 /** Frame rules and ornaments around the design window. */
 function paintFrame(
   ctx: CanvasRenderingContext2D,
   s: StampSettings,
   win: Box,
+  vig: Box,
   unit: number,
 ) {
   if (s.frame === "none") return
@@ -272,6 +313,19 @@ function paintFrame(
   if (s.frame === "rule") {
     ctx.lineWidth = unit * 0.9
     ctx.strokeRect(x, y, w, h)
+    return
+  }
+
+  if (s.frame === "arched") {
+    // a plain outer rule, and a band that follows the vignette so the
+    // curved country line has somewhere to sit
+    ctx.lineWidth = unit * 1.4
+    ctx.strokeRect(x, y, w, h)
+    ctx.lineWidth = unit * 0.55
+    ctx.strokeRect(x + unit * 1.6, y + unit * 1.6, w - unit * 3.2, h - unit * 3.2)
+    ctx.lineWidth = unit * 1.1
+    vignettePath(ctx, s.vignette, vig)
+    ctx.stroke()
     return
   }
 
@@ -388,12 +442,17 @@ function inkArt(art: ImageBitmap, w: number, h: number): HTMLCanvasElement {
   return c
 }
 
-/** Place the artwork in its area under the chosen fit, zoom and pan. */
+/**
+ * Place the artwork in its area under the chosen fit, zoom and pan, masked
+ * into the vignette shape. A feathered mask is built on its own canvas so
+ * the blur softens the mask, not the picture.
+ */
 function drawArt(
   ctx: CanvasRenderingContext2D,
   art: HTMLCanvasElement,
   area: Box,
   s: StampSettings,
+  shape: StampSettings["vignette"],
 ) {
   if (area.w < 4 || area.h < 4) return
   const zoom = Math.max(0.05, s.artZoom)
@@ -409,19 +468,36 @@ function drawArt(
     dw = art.width * k
     dh = art.height * k
   }
-  ctx.save()
-  // anything past the area is cropped away, so cover and zoom can overflow
-  ctx.beginPath()
-  ctx.rect(area.x, area.y, area.w, area.h)
-  ctx.clip()
-  ctx.drawImage(
-    art,
-    area.x + (area.w - dw) / 2 + s.artPos.x * area.w * 0.5,
-    area.y + (area.h - dh) / 2 - s.artPos.y * area.h * 0.5,
-    dw,
-    dh,
-  )
-  ctx.restore()
+  const dx = area.x + (area.w - dw) / 2 + s.artPos.x * area.w * 0.5
+  const dy = area.y + (area.h - dh) / 2 - s.artPos.y * area.h * 0.5
+  const feather = s.feather * Math.min(area.w, area.h) * 0.12
+
+  if (shape === "rect" && feather < 0.5) {
+    ctx.save()
+    // anything past the area is cropped, so cover and zoom can overflow
+    ctx.beginPath()
+    ctx.rect(area.x, area.y, area.w, area.h)
+    ctx.clip()
+    ctx.drawImage(art, dx, dy, dw, dh)
+    ctx.restore()
+    return
+  }
+
+  const pad = Math.ceil(feather * 2 + 2)
+  const tw = Math.ceil(area.w) + 2 * pad
+  const th = Math.ceil(area.h) + 2 * pad
+  const tmp = document.createElement("canvas")
+  tmp.width = tw
+  tmp.height = th
+  const tctx = tmp.getContext("2d")!
+  tctx.translate(pad - area.x, pad - area.y)
+  tctx.drawImage(art, dx, dy, dw, dh)
+  tctx.globalCompositeOperation = "destination-in"
+  if (feather >= 0.5) tctx.filter = `blur(${feather.toFixed(2)}px)`
+  tctx.fillStyle = "#000"
+  vignettePath(tctx, shape, area)
+  tctx.fill()
+  ctx.drawImage(tmp, area.x - pad, area.y - pad)
 }
 
 /**
@@ -452,6 +528,8 @@ function paintDesign(
     w: W - 2 * bleedInset,
     h: H - 2 * bleedInset,
   }
+  const tabletBand = s.designOn && (s.tablets || s.ribbon) ? unit * 12 : 0
+  const arcBand = s.designOn && s.countryArc && s.country ? unit * 8 : 0
   if (!s.artBleed) {
     area = outer
     if (s.designOn) {
@@ -459,8 +537,9 @@ function paintDesign(
       // filling means filling the whole frame; only "fit inside" keeps
       // clear space for the country line and the denomination
       const reserve = s.artFit === "contain"
-      const top = reserve && s.country ? unit * 7 : 0
-      const bottom = reserve && (s.denomination || s.caption) ? unit * 8 : 0
+      const top = arcBand || (reserve && s.country ? unit * 7 : 0)
+      const bottom =
+        tabletBand || (reserve && (s.denomination || s.caption) ? unit * 8 : 0)
       area = {
         x: outer.x + pad,
         y: outer.y + pad + top,
@@ -470,7 +549,8 @@ function paintDesign(
     }
   }
 
-  if (art) drawArt(ctx, art, area, s)
+  const shape = s.artBleed ? "rect" : s.vignette
+  if (art) drawArt(ctx, art, area, s, shape)
 
   // the frame and the type are a second plate, printed over the picture
   ctx.fillStyle = inkMode ? "#000" : s.frameColor
@@ -479,9 +559,30 @@ function paintDesign(
   const face = FONT_STACKS[s.typeface] ?? FONT_STACKS.serif
 
   if (s.designOn) {
-    paintFrame(ctx, s, outer, unit)
+    paintFrame(ctx, s, outer, area, unit)
     const inset = s.frame === "none" ? unit * 1.5 : unit * 5
-    if (s.country) {
+    if (s.country && s.countryArc) {
+      // bent over the top of the vignette, the way the 1922 issues set it
+      const r =
+        shape === "circle" || shape === "oval"
+          ? Math.min(area.w, area.h) / 2
+          : Math.min(area.w / 2, area.h * 0.72)
+      const cy =
+        shape === "circle" || shape === "oval"
+          ? area.y + area.h / 2
+          : area.y + r
+      ctx.font = `600 ${unit * 4}px ${face}`
+      ctx.textBaseline = "middle"
+      arcText(
+        ctx,
+        s.country.toUpperCase(),
+        area.x + area.w / 2,
+        cy,
+        r + unit * 3.4,
+        -Math.PI / 2,
+        false,
+      )
+    } else if (s.country) {
       ctx.font = `600 ${unit * 4.2}px ${face}`
       ctx.textBaseline = "alphabetic"
       trackedText(
@@ -492,25 +593,55 @@ function paintDesign(
         unit * 0.55,
       )
     }
-    if (s.denomination) {
+    const footY = outer.y + outer.h - inset
+    if (s.denomination && s.tablets) {
+      // a numeral tablet in each lower corner, as the high values carried
+      const tw = unit * 15
+      const th = unit * 9
+      const ty = footY - th
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      for (const tx of [outer.x + unit * 1.5, outer.x + outer.w - tw - unit * 1.5]) {
+        ctx.lineWidth = unit * 0.7
+        ctx.strokeRect(tx, ty, tw, th)
+        ctx.font = `700 ${unit * 6.4}px ${face}`
+        ctx.fillText(s.denomination, tx + tw / 2, ty + th / 2 + unit * 0.2)
+      }
+    } else if (s.denomination) {
       ctx.font = `700 ${unit * 7}px ${face}`
       ctx.textBaseline = "alphabetic"
       ctx.textAlign = "left"
-      ctx.fillText(
-        s.denomination,
-        outer.x + inset,
-        outer.y + outer.h - inset - unit * 0.5,
-      )
+      ctx.fillText(s.denomination, outer.x + inset, footY - unit * 0.5)
     }
-    if (s.caption) {
-      ctx.font = `400 ${unit * 3.2}px ${face}`
+    if (s.caption && s.ribbon) {
+      // a ribbon slung between the tablets, carrying the subject name
+      const rw = Math.min(outer.w * 0.52, unit * 46)
+      const rh = unit * 5.2
+      const rx = outer.x + (outer.w - rw) / 2
+      const ry = footY - (s.tablets ? unit * 6.6 : unit * 4)
+      ctx.lineWidth = unit * 0.6
+      ctx.beginPath()
+      ctx.moveTo(rx, ry)
+      ctx.lineTo(rx + rw, ry)
+      ctx.lineTo(rx + rw - unit * 2, ry + rh / 2)
+      ctx.lineTo(rx + rw, ry + rh)
+      ctx.lineTo(rx, ry + rh)
+      ctx.lineTo(rx + unit * 2, ry + rh / 2)
+      ctx.closePath()
+      ctx.stroke()
+      ctx.font = `600 ${unit * 3}px ${face}`
+      ctx.textBaseline = "middle"
       trackedText(
         ctx,
-        s.caption,
-        outer.x + outer.w / 2,
-        outer.y + outer.h - inset - unit * 1.2,
-        unit * 0.3,
+        s.caption.toUpperCase(),
+        rx + rw / 2,
+        ry + rh / 2,
+        unit * 0.35,
       )
+    } else if (s.caption) {
+      ctx.font = `400 ${unit * 3.2}px ${face}`
+      ctx.textBaseline = "alphabetic"
+      trackedText(ctx, s.caption, outer.x + outer.w / 2, footY - unit * 1.2, unit * 0.3)
     }
   }
   ctx.restore()

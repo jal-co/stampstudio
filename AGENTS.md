@@ -15,6 +15,11 @@ to `main`).
 - `src/lib/stamp-renderer.ts` - the 3D side: paper GLSL shader, intaglio
   relief, gummed back, curl geometry, PNG/GIF/video/GLB exporters
 - `src/lib/settings.ts` - `StampSettings` interface, defaults, format aspects
+- `src/lib/fonts.ts` - the lettering faces and the loader the bake waits on
+- `src/lib/ornaments.ts` - corner ornaments as SVG path data, tinted on bake
+- `src/lib/presets.ts` - the looks offered in the sidebar's "Start from"
+- `src/lib/analytics.ts` - OpenPanel, production only, keyed by
+  `VITE_OPENPANEL_CLIENT_ID`
 - `src/components/Sidebar.tsx` - props editor
 - `src/components/StampCanvas.tsx` - main canvas + render loop
 - `src/App.tsx` - state, upload, export orchestration, toolbar, dialogs
@@ -39,9 +44,15 @@ to `main`).
    loop in `buildStampMaps` runs on every settings change, so fibre,
    watermark and lighting live in the shader where they stay crisp at export
    size. Keep it that way.
-8. Shader, bake or geometry changes need a visual check in the browser
-   (`npm run dev`): the perforated edge at low and high gauge, an aged sheet,
-   a struck postmark, the corner lift, and a PNG export.
+8. Canvas text falls back silently when a webfont has not arrived. Any new
+   face MUST be added to `loadStampFonts` in `src/lib/fonts.ts`, which the
+   canvas awaits before re-baking.
+9. Secrets never enter the repo. The OpenPanel client id is public and lives
+   in `VITE_OPENPANEL_CLIENT_ID`; the client secret is server-side only and
+   belongs nowhere in `src/`.
+10. Shader, bake or geometry changes need a visual check in the browser
+    (`npm run dev`): the perforated edge at low and high gauge, an aged
+    sheet, a struck postmark, the corner lift, and a PNG export.
 
 ## Commands
 

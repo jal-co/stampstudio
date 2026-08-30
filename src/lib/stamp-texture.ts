@@ -1,8 +1,11 @@
 import { FONT_STACKS, POSTMARK_FONT } from "./fonts"
 import { paintOrnament } from "./ornaments"
+import { paintGround } from "./ground"
 import {
   formatAspect,
+  type Anchor,
   type DenomAnchor,
+  type Inscription,
   type StampSettings,
 } from "./settings"
 
@@ -258,39 +261,29 @@ interface Box {
  * round, the shape the 1922 high values used to sit a vignette under a
  * curved country line.
  */
-function vignettePath(
-  ctx: CanvasRenderingContext2D,
-  shape: StampSettings["vignette"],
-  b: Box,
-) {
-  ctx.beginPath()
+/** The window outline as a path that can be filled, stroked or clipped. */
+function vignetteShape(shape: StampSettings["vignette"], b: Box): Path2D {
+  const p = new Path2D()
   if (shape === "circle") {
     const r = Math.min(b.w, b.h) / 2
-    ctx.arc(b.x + b.w / 2, b.y + b.h / 2, r, 0, Math.PI * 2)
+    p.arc(b.x + b.w / 2, b.y + b.h / 2, r, 0, Math.PI * 2)
   } else if (shape === "oval") {
-    ctx.ellipse(
-      b.x + b.w / 2,
-      b.y + b.h / 2,
-      b.w / 2,
-      b.h / 2,
-      0,
-      0,
-      Math.PI * 2,
-    )
+    p.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2)
   } else if (shape === "arch") {
     // the top corners round off at the same radius, so a square box domes
     // into a half round and a wide one keeps flat shoulders
     const r = Math.min(b.w / 2, b.h * 0.72)
-    ctx.moveTo(b.x, b.y + b.h)
-    ctx.lineTo(b.x, b.y + r)
-    ctx.arcTo(b.x, b.y, b.x + r, b.y, r)
-    ctx.lineTo(b.x + b.w - r, b.y)
-    ctx.arcTo(b.x + b.w, b.y, b.x + b.w, b.y + r, r)
-    ctx.lineTo(b.x + b.w, b.y + b.h)
-    ctx.closePath()
+    p.moveTo(b.x, b.y + b.h)
+    p.lineTo(b.x, b.y + r)
+    p.arcTo(b.x, b.y, b.x + r, b.y, r)
+    p.lineTo(b.x + b.w - r, b.y)
+    p.arcTo(b.x + b.w, b.y, b.x + b.w, b.y + r, r)
+    p.lineTo(b.x + b.w, b.y + b.h)
+    p.closePath()
   } else {
-    ctx.rect(b.x, b.y, b.w, b.h)
+    p.rect(b.x, b.y, b.w, b.h)
   }
+  return p
 }
 
 /** Frame rules and ornaments around the design window. */
@@ -489,8 +482,7 @@ function drawArt(
   tctx.globalCompositeOperation = "destination-in"
   if (feather >= 0.5) tctx.filter = `blur(${feather.toFixed(2)}px)`
   tctx.fillStyle = "#000"
-  vignettePath(tctx, shape, area)
-  tctx.fill()
+  tctx.fill(vignetteShape(shape, area))
   ctx.drawImage(tmp, area.x - pad, area.y - pad)
 }
 
@@ -550,6 +542,41 @@ function paintDesign(
   // bleed; only a rectangular window can run off the paper
   const shape = s.vignette
   if (shape !== "none" || !s.artBleed) area = win
+
+  // ground work fills the field the picture leaves behind
+  if (s.designOn && s.ground !== "none") {
+    ctx.save()
+    const pad = s.frame === "none" ? unit : unit * 4
+    const field = new Path2D()
+    field.rect(
+      outer.x + pad,
+      outer.y + pad,
+      outer.w - 2 * pad,
+      outer.h - 2 * pad,
+    )
+    if (!s.groundUnderArt && shape !== "none") {
+      // punch the window out, so the ground stops at the picture
+      field.addPath(vignetteShape(shape, win))
+    }
+    ctx.clip(field, "evenodd")
+    ctx.fillStyle = inkMode ? "#000" : s.groundColor
+    ctx.strokeStyle = inkMode ? "#000" : s.groundColor
+    paintGround(
+      ctx,
+      {
+        style: s.ground,
+        color: inkMode ? "#000000" : s.groundColor,
+        weight: s.groundWeight,
+        scale: s.groundScale,
+        angle: s.groundAngle,
+        strength: s.groundStrength,
+      },
+      { x: outer.x, y: outer.y, w: outer.w, h: outer.h },
+      unit,
+    )
+    ctx.restore()
+  }
+
   if (art) drawArt(ctx, art, area, s, shape)
 
   // the frame and the type are a second plate, printed over the picture
@@ -565,8 +592,7 @@ function paintDesign(
       ctx.save()
       ctx.strokeStyle = inkMode ? "#000" : s.vignetteColor
       ctx.lineWidth = unit * 1.1
-      vignettePath(ctx, shape, win)
-      ctx.stroke()
+      ctx.stroke(vignetteShape(shape, win))
       ctx.restore()
     }
     if (s.ornament !== "none") {
@@ -711,6 +737,73 @@ function paintDesign(
       ctx.textBaseline = "alphabetic"
       trackedText(ctx, s.caption, outer.x + outer.w / 2, footY - unit * 1.2, unit * 0.3)
     }
+
+    // free inscriptions print last, over every other plate
+    for (const item of s.inscriptions) {
+      paintInscription(ctx, item, s, outer, win, unit, W, H, inkMode)
+    }
+  }
+  ctx.restore()
+}
+
+/** Anchor point inside a box, before the element's own offset. */
+function anchorPoint(a: Anchor, b: Box, pad: number) {
+  const x =
+    a.endsWith("left")
+      ? b.x + pad
+      : a.endsWith("right")
+        ? b.x + b.w - pad
+        : b.x + b.w / 2
+  const y = a.startsWith("top")
+    ? b.y + pad
+    : a.startsWith("bottom")
+      ? b.y + b.h - pad
+      : b.y + b.h / 2
+  return { x, y }
+}
+
+/** A line of type the user placed and turned themselves. */
+function paintInscription(
+  ctx: CanvasRenderingContext2D,
+  item: Inscription,
+  s: StampSettings,
+  outer: Box,
+  win: Box,
+  unit: number,
+  W: number,
+  H: number,
+  inkMode: boolean,
+) {
+  if (!item.text) return
+  const text = item.caps ? item.text.toUpperCase() : item.text
+  const size = item.size * Math.min(W, H)
+  const face = FONT_STACKS[item.typeface] ?? FONT_STACKS.serif
+  const pad = s.frame === "none" ? unit * 2 : unit * 6
+
+  ctx.save()
+  ctx.fillStyle = inkMode ? "#000" : item.color
+  ctx.font = `600 ${size}px ${face}`
+  ctx.textBaseline = "middle"
+  ctx.textAlign = "center"
+
+  const p = anchorPoint(item.anchor, outer, pad)
+  const x = p.x + item.pos.x * outer.w
+  const y = p.y - item.pos.y * outer.h
+
+  if (item.arc) {
+    // bent around the picture window, the way a country line runs over an
+    // arched vignette
+    const r = Math.max(win.w, win.h) / 2 + size
+    const cx = win.x + win.w / 2 + item.pos.x * outer.w
+    const cy = win.y + win.h / 2 - item.pos.y * outer.h
+    const below = item.anchor.startsWith("bottom")
+    ctx.translate(cx, cy)
+    ctx.rotate(item.rotate * Math.PI * 2)
+    arcText(ctx, text, 0, 0, r, below ? Math.PI / 2 : -Math.PI / 2, below)
+  } else {
+    ctx.translate(x, y)
+    ctx.rotate(item.rotate * Math.PI * 2)
+    trackedText(ctx, text, 0, 0, size * item.tracking)
   }
   ctx.restore()
 }

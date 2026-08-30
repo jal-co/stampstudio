@@ -17,7 +17,41 @@ export type Typeface =
   | "condensed"
   | "typewriter"
   | "script"
+import type { GroundStyle } from "./ground"
+
+export type { GroundStyle }
+
 export type PostmarkStyle = "bars" | "datestamp" | "both" | "grid"
+/** Where an element sits before its offset is applied */
+export type Anchor =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right"
+
+/** A line of type the user placed themselves */
+export interface Inscription {
+  id: string
+  text: string
+  typeface: Typeface
+  color: string
+  /** Cap height as a fraction of the short side */
+  size: number
+  anchor: Anchor
+  /** Offset from the anchor, in fractions of the design window */
+  pos: { x: number; y: number }
+  /** Rotation in turns, -0.25 to 0.25 */
+  rotate: number
+  /** Bend the line around the vignette instead of setting it straight */
+  arc: boolean
+  caps: boolean
+  /** Letter spacing as a fraction of cap height */
+  tracking: number
+}
+
 export type DenomAnchor =
   | "bottom-left"
   | "bottom-center"
@@ -97,6 +131,22 @@ export interface StampSettings {
   ribbon: boolean
   /** Country line, printed across the top */
   country: string
+  /** Pattern filling the field inside the frame, outside the picture */
+  ground: GroundStyle
+  groundColor: string
+  /** Line or dot weight, 0 to 1 */
+  groundWeight: number
+  /** Pattern pitch, 0 to 1 */
+  groundScale: number
+  /** Rotation in turns */
+  groundAngle: number
+  /** Ink strength, 0 to 1 */
+  groundStrength: number
+  /** Lay the ground under the picture as well as around it */
+  groundUnderArt: boolean
+  /** Free lines of type, printed over everything else */
+  inscriptions: Inscription[]
+
   /** Face value, printed in the lower corner */
   denomination: string
   /** Corner the value is set against */
@@ -182,6 +232,14 @@ export const defaultSettings: StampSettings = {
   tablets: false,
   ribbon: false,
   country: "UNITED STATES POSTAGE",
+  ground: "none",
+  groundColor: "#1d3f6e",
+  groundWeight: 0.4,
+  groundScale: 0.35,
+  groundAngle: 0.125,
+  groundStrength: 0.55,
+  groundUnderArt: false,
+  inscriptions: [],
   denomination: "13¢",
   denomAnchor: "bottom-left",
   denomPos: { x: 0, y: 0 },

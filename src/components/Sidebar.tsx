@@ -3,6 +3,7 @@ import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
 import { ColorPickerField } from "@/components/ColorPickerField"
 import { templates, type Template } from "@/lib/templates"
+import { Variations } from "@/components/Variations"
 import { InscriptionEditor } from "@/components/InscriptionEditor"
 import { TemplatePreview } from "@/components/TemplatePreview"
 import { cn } from "@/lib/utils"
@@ -67,6 +68,7 @@ const printPresets: {
 
 interface Props {
   settings: StampSettings
+  image: ImageBitmap | null
   imageName: string | null
   onChange: (patch: Partial<StampSettings>) => void
   onTemplate: (template: Template) => void
@@ -293,6 +295,7 @@ function SwitchRow({
 
 export function Sidebar({
   settings,
+  image,
   imageName,
   onChange,
   onTemplate,
@@ -360,6 +363,12 @@ export function Sidebar({
               imageName={imageName}
               onUpload={onUpload}
               onOpen={() => fileRef.current?.click()}
+            />
+            <Variations
+              settings={settings}
+              image={image}
+              imageName={imageName}
+              onChange={onChange}
             />
             {imageName && (
               <div className="flex items-center gap-1.5 rounded-lg bg-accent/60 py-0.5 pl-2.5 pr-0.5">

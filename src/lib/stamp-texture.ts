@@ -1009,9 +1009,15 @@ function paintPaper(
 export function buildStampMaps(
   s: StampSettings,
   art: ImageBitmap | null,
+  /**
+   * Long edge of the bake. The default is what the canvas needs; a thumbnail
+   * that ends up 220px wide does not, and baking it at full size costs about
+   * twenty-five times the pixels for no visible gain.
+   */
+  texLong: number = TEX_LONG,
 ): StampMaps {
   const ar = formatAspect[s.format]
-  const H = ar >= 1 ? Math.round(TEX_LONG / ar) : TEX_LONG
+  const H = ar >= 1 ? Math.round(texLong / ar) : texLong
   const W = Math.round(H * ar)
 
   // paper rect, inset so punched holes have room to bite into the texture

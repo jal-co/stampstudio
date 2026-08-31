@@ -373,6 +373,7 @@ export default function App() {
     <div className="flex h-dvh flex-col-reverse overflow-hidden bg-background text-foreground md:flex-row">
       <Sidebar
         settings={settings}
+        image={image}
         imageName={imageName}
         onChange={patch}
         onTemplate={(t) => void applyTemplate(t)}

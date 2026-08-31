@@ -22,13 +22,13 @@ An online, open source stamp creator. Upload artwork, set the perforation gauge,
 - **Stamp furniture**: frame styles, corner ornaments, a curved country line, corner value tablets with the numeral knocked out, and ribbon captions
 - **Six bundled faces** cut for stamp work, from Libre Baskerville to Pinyon Script
 - **Cancellation**: duplex postmark with killer bars and an editable circular datestamp, placed and angled anywhere on the face
-- **Seven templates** built on Creative Commons photographs, and eight plate presets from the 1922 high values to a modern self-adhesive
+- **Six templates** built on Creative Commons photographs, and eight plate presets from the 1922 high values to a modern self-adhesive
 - Pointer tilt, a corner lift with graded curl, and dark mode (press <kbd>D</kbd>)
 - Save and import settings as JSON; export PNG at 1024 / 2048 / 4096 with transparency, plus GIF, MP4, and GLB
 
 ## Templates
 
-Seven finished stamps, each a photograph with the plates designed around it.
+Six finished stamps, each a photograph with the plates designed around it.
 The pictures are Creative Commons, found through
 [Openverse](https://openverse.org), and bundled in `public/templates` so the
 bake never depends on someone else's CDN. Every one keeps its credit on the
@@ -40,7 +40,6 @@ canvas and here.
 | National park | [Hallet Peak, Rocky Mountain N.P.](https://www.flickr.com/photos/55608722@N06/6314607981) | [Dusty J](https://www.flickr.com/photos/55608722@N06) | CC BY 2.0 |
 | Wildlife | [The River Wey Navigation, heron hiding](https://www.flickr.com/photos/40837632@N05/9614062433) | [Gareth1953 All Right Now](https://www.flickr.com/photos/40837632@N05) | CC BY 2.0 |
 | Maritime | [A Calm at a Mediterranean Port, the sailing ship (detail)](https://www.flickr.com/photos/46042146@N00/2711066783) | [Randy Son Of Robert](https://www.flickr.com/photos/46042146@N00) | CC BY 2.0 |
-| Lunar | [Full moon](https://www.flickr.com/photos/100769237@N03/15896364887) | [darrenprice187](https://www.flickr.com/photos/100769237@N03) | CC BY 2.0 |
 | Botanical | [The blue bell is the sweetest flower](https://www.flickr.com/photos/37072378@N08/17714873202) | [Orchids love rainwater](https://www.flickr.com/photos/37072378@N08) | CC BY 2.0 |
 | Engineering | [West Garfield Street Bridge, 1929](https://www.flickr.com/photos/24256351@N04/4257832624) | [Seattle Municipal Archives](https://www.flickr.com/photos/24256351@N04) | CC BY 2.0 |
 

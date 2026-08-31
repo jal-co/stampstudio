@@ -21,7 +21,8 @@ import { currentVersion } from "@/lib/changelog"
 import { Sidebar } from "@/components/Sidebar"
 import { StampCanvas } from "@/components/StampCanvas"
 import { track } from "@/lib/analytics"
-import { loadImageFile } from "@/lib/load-image"
+import { loadImageFile, loadImageUrl } from "@/lib/load-image"
+import type { PhotoCredit, Template } from "@/lib/templates"
 import type { StampRenderer } from "@/lib/stamp-renderer"
 import { defaultSettings, type StampSettings } from "@/lib/settings"
 
@@ -37,6 +38,7 @@ export default function App() {
   const [settings, setSettings] = useState<StampSettings>(defaultSettings)
   const [image, setImage] = useState<ImageBitmap | null>(null)
   const [imageName, setImageName] = useState<string | null>(null)
+  const [credit, setCredit] = useState<PhotoCredit | null>(null)
   const [exporting, setExporting] = useState(false)
   const [gifProgress, setGifProgress] = useState<number | null>(null)
   const [gifDialogOpen, setGifDialogOpen] = useState(false)
@@ -101,11 +103,26 @@ export default function App() {
     track("preset_applied", { frame: p.frame, vignette: p.vignette })
   }, [])
 
+  // a template is a preset plus the photograph it was designed around
+  const applyTemplate = useCallback(async (t: Template) => {
+    try {
+      const loaded = await loadImageUrl(t.image, `${t.label}.jpg`)
+      setImage(loaded.bitmap)
+      setImageName(loaded.name)
+      setCredit(t.credit)
+      setSettings({ ...defaultSettings, ...t.patch })
+      track("template_applied", { template: t.id })
+    } catch {
+      alert("Could not load that template photograph.")
+    }
+  }, [])
+
   const handleUpload = useCallback(async (file: File) => {
     try {
       const loaded = await loadImageFile(file)
       setImage(loaded.bitmap)
       setImageName(loaded.name)
+      setCredit(null)
     } catch {
       alert("Could not load that file. Try an SVG, PNG, JPG, or WebP.")
     }
@@ -138,6 +155,7 @@ export default function App() {
   const handleRemoveImage = useCallback(() => {
     setImage(null)
     setImageName(null)
+    setCredit(null)
   }, [])
 
   const handleExportSettings = useCallback(() => {
@@ -320,6 +338,7 @@ export default function App() {
         imageName={imageName}
         onChange={patch}
         onPreset={applyPreset}
+        onTemplate={(t) => void applyTemplate(t)}
         onUpload={handleUpload}
         onRemove={handleRemoveImage}
         onExportSettings={handleExportSettings}
@@ -484,6 +503,36 @@ export default function App() {
             onRendererReady={handleRendererReady}
           />
         </div>
+        {credit && (
+          <p className="absolute bottom-4 left-1/2 max-w-[80%] -translate-x-1/2 truncate text-center text-[11px] text-muted-foreground">
+            Photo:{" "}
+            <a
+              href={credit.source}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {credit.title}
+            </a>{" "}
+            by{" "}
+            <a
+              href={credit.creatorUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {credit.creator}
+            </a>{" "}
+            <a
+              href={credit.licenseUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {credit.license}
+            </a>
+          </p>
+        )}
         <button
           type="button"
           onClick={() => setTiltLocked((l) => !l)}

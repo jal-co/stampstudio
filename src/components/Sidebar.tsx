@@ -3,6 +3,7 @@ import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
 import { ColorPickerField } from "@/components/ColorPickerField"
 import { presets } from "@/lib/presets"
+import { templates, type Template } from "@/lib/templates"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,6 +67,7 @@ interface Props {
   imageName: string | null
   onChange: (patch: Partial<StampSettings>) => void
   onPreset: (patch: Partial<StampSettings>) => void
+  onTemplate: (template: Template) => void
   onUpload: (file: File) => void
   onRemove: () => void
   onExportSettings: () => void
@@ -292,6 +294,7 @@ export function Sidebar({
   imageName,
   onChange,
   onPreset,
+  onTemplate,
   onUpload,
   onRemove,
   onExportSettings,
@@ -309,7 +312,42 @@ export function Sidebar({
       <Separator />
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-4 py-4">
-          {/* Start from a finished look */}
+          {/* Finished stamps: a photograph and the plates that suit it */}
+          <Section title="Templates">
+            <div className="grid grid-cols-2 gap-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onTemplate(t)}
+                  title={`${t.credit.title} by ${t.credit.creator} (${t.credit.license})`}
+                  className={cn(
+                    "group overflow-hidden rounded-lg border border-input text-left",
+                    "transition-[border-color,transform] duration-150 ease-out",
+                    "hover:border-ring/60 active:scale-[0.98]",
+                  )}
+                >
+                  <img
+                    src={t.image}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-4/3 w-full object-cover"
+                  />
+                  <span className="block truncate px-2 py-1.5 text-[11px] font-medium">
+                    {t.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Photographs are Creative Commons, found through Openverse. Each
+              one keeps its credit on the canvas.
+            </p>
+          </Section>
+
+          <Separator />
+
+          {/* Plates only, applied to whatever artwork is loaded */}
           <Section title="Start from">
             <div className="grid grid-cols-2 gap-1.5">
               {presets.map((p) => (

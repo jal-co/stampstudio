@@ -22,7 +22,7 @@ An online, open source stamp creator. Upload artwork, set the perforation gauge,
 - **Stamp furniture**: frame styles, corner ornaments, a curved country line, corner value tablets with the numeral knocked out, and ribbon captions
 - **Six bundled faces** cut for stamp work, from Libre Baskerville to Pinyon Script
 - **Cancellation**: duplex postmark with killer bars and an editable circular datestamp, placed and angled anywhere on the face
-- **Six templates** built on Creative Commons photographs, and eight plate presets from the 1922 high values to a modern self-adhesive
+- **Six templates** built on Creative Commons photographs, each loading a picture and the plates designed around it
 - Pointer tilt, a corner lift with graded curl, and dark mode (press <kbd>D</kbd>)
 - Save and import settings as JSON; export PNG at 1024 / 2048 / 4096 with transparency, plus GIF, MP4, and GLB
 

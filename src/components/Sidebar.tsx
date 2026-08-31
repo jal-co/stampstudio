@@ -2,9 +2,9 @@ import { useRef, useState } from "react"
 import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
 import { ColorPickerField } from "@/components/ColorPickerField"
-import { presets } from "@/lib/presets"
 import { templates, type Template } from "@/lib/templates"
 import { InscriptionEditor } from "@/components/InscriptionEditor"
+import { TemplatePreview } from "@/components/TemplatePreview"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -69,7 +69,6 @@ interface Props {
   settings: StampSettings
   imageName: string | null
   onChange: (patch: Partial<StampSettings>) => void
-  onPreset: (patch: Partial<StampSettings>) => void
   onTemplate: (template: Template) => void
   onUpload: (file: File) => void
   onRemove: () => void
@@ -296,7 +295,6 @@ export function Sidebar({
   settings,
   imageName,
   onChange,
-  onPreset,
   onTemplate,
   onUpload,
   onRemove,
@@ -330,12 +328,7 @@ export function Sidebar({
                     "hover:border-ring/60 active:scale-[0.98]",
                   )}
                 >
-                  <img
-                    src={t.image}
-                    alt=""
-                    loading="lazy"
-                    className="aspect-4/3 w-full object-cover"
-                  />
+                  <TemplatePreview template={t} />
                   <span className="block truncate px-2 py-1.5 text-[11px] font-medium">
                     {t.label}
                   </span>
@@ -346,29 +339,6 @@ export function Sidebar({
               Photographs are Creative Commons, found through Openverse. Each
               one keeps its credit on the canvas.
             </p>
-          </Section>
-
-          <Separator />
-
-          {/* Plates only, applied to whatever artwork is loaded */}
-          <Section title="Start from">
-            <div className="grid grid-cols-2 gap-1.5">
-              {presets.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  title={p.note}
-                  onClick={() => onPreset(p.patch)}
-                  className={cn(
-                    "rounded-lg border border-input px-2 py-2 text-left text-[11px] font-medium",
-                    "transition-[color,background-color,border-color,transform] duration-150 ease-out",
-                    "hover:border-ring/60 hover:bg-accent active:scale-[0.98]",
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
           </Section>
 
           <Separator />

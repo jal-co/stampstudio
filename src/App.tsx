@@ -98,11 +98,6 @@ export default function App() {
 
   // a preset is a whole look, so it replaces the sheet instead of layering
   // onto whatever the sliders were left at
-  const applyPreset = useCallback((p: Partial<StampSettings>) => {
-    setSettings({ ...defaultSettings, ...p })
-    track("preset_applied", { frame: p.frame, vignette: p.vignette })
-  }, [])
-
   // a template is a preset plus the photograph it was designed around
   const applyTemplate = useCallback(async (t: Template) => {
     try {
@@ -337,7 +332,6 @@ export default function App() {
         settings={settings}
         imageName={imageName}
         onChange={patch}
-        onPreset={applyPreset}
         onTemplate={(t) => void applyTemplate(t)}
         onUpload={handleUpload}
         onRemove={handleRemoveImage}

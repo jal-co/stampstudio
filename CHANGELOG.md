@@ -1,5 +1,23 @@
 # stampstudio
 
+## 1.1.0
+
+### Minor Changes
+
+- dd79fc7: Ground work: the field inside the frame and outside the picture can now be printed with engine-turned guilloche, burelage, cross-hatch, a graded panel, stipple or a halftone screen. Each carries its own colour, weight, pitch, angle and strength, and can run under the picture instead of stopping at the window.
+
+  The ground is cleared back from every line of type and fades in again around the letterforms, so a caption reads against a hatch instead of fighting it. A banner clears as a whole panel. The reach is a slider.
+
+  Inscriptions are now a list rather than three fixed slots. A design can carry as many lines of type as it needs, each with its own face, colour, size, anchor, offset, rotation and tracking, set straight or bent around the picture window.
+
+- 551ae6e: Templates: six finished stamps that load a photograph and the plates designed around it, from a lighthouse in engraved blue to a bluebell on an oval vignette. The pictures are Creative Commons, credited on the canvas and in the readme.
+
+  Lettering now keeps its own paper. A window with a vignette reserves a band for the country line and the value instead of letting type fall over the picture, a loose value clears the frame rules, and the corner it sits in gives up its ornament.
+
+  Maritime sets its caption on the ribbon as "at PORT" with the value nudged clear of it. Engineering drops the rule around its window and feathers the picture into the paper instead, on heavier toning and wear.
+
+  Template cards show the stamp they make, not the photograph they start from. Each card bakes its own plate once, in the background, and keeps it for the session.
+
 ## 1.0.0
 
 ### Major Changes

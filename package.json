@@ -1,7 +1,7 @@
 {
   "name": "stampstudio",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An online, open source stamp creator. Print artwork as a postage stamp and export it with real perforations, paper and ink.",
   "license": "MIT",
   "homepage": "https://stampstud.io",

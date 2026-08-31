@@ -393,6 +393,7 @@ export class StampRenderer {
       s.groundAngle,
       s.groundStrength,
       s.groundUnderArt,
+      s.groundClear,
       JSON.stringify(s.inscriptions),
       s.denomination,
       s.denomAnchor,

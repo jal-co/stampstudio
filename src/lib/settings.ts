@@ -144,6 +144,8 @@ export interface StampSettings {
   groundStrength: number
   /** Lay the ground under the picture as well as around it */
   groundUnderArt: boolean
+  /** Clear the ground back from lettering, 0 to 1 */
+  groundClear: number
   /** Free lines of type, printed over everything else */
   inscriptions: Inscription[]
 
@@ -239,6 +241,7 @@ export const defaultSettings: StampSettings = {
   groundAngle: 0.125,
   groundStrength: 0.55,
   groundUnderArt: false,
+  groundClear: 0.5,
   inscriptions: [],
   denomination: "13¢",
   denomAnchor: "bottom-left",

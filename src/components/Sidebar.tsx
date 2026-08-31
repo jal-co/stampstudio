@@ -801,6 +801,15 @@ export function Sidebar({
                   format={pct}
                   onChange={(v) => onChange({ groundStrength: v })}
                 />
+                <SliderRow
+                  label="Clear behind type"
+                  value={settings.groundClear}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  format={pct}
+                  onChange={(v) => onChange({ groundClear: v })}
+                />
                 <SwitchRow
                   label="Run under the picture"
                   hint="Otherwise the ground stops at the window"

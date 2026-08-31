@@ -542,10 +542,15 @@ function paintDesign(
   // bleed; only a rectangular window can run off the paper
   const shape = s.vignette
   if (shape !== "none" || !s.artBleed) area = win
+  const face = FONT_STACKS[s.typeface] ?? FONT_STACKS.serif
 
   // ground work fills the field the picture leaves behind
   if (s.designOn && s.ground !== "none") {
-    ctx.save()
+    const gnd = document.createElement("canvas")
+    gnd.width = W
+    gnd.height = H
+    const gctx = gnd.getContext("2d")!
+    gctx.save()
     const pad = s.frame === "none" ? unit : unit * 4
     const field = new Path2D()
     field.rect(
@@ -558,11 +563,11 @@ function paintDesign(
       // punch the window out, so the ground stops at the picture
       field.addPath(vignetteShape(shape, win))
     }
-    ctx.clip(field, "evenodd")
-    ctx.fillStyle = inkMode ? "#000" : s.groundColor
-    ctx.strokeStyle = inkMode ? "#000" : s.groundColor
+    gctx.clip(field, "evenodd")
+    gctx.fillStyle = inkMode ? "#000" : s.groundColor
+    gctx.strokeStyle = inkMode ? "#000" : s.groundColor
     paintGround(
-      ctx,
+      gctx,
       {
         style: s.ground,
         color: inkMode ? "#000000" : s.groundColor,
@@ -574,7 +579,24 @@ function paintDesign(
       { x: outer.x, y: outer.y, w: outer.w, h: outer.h },
       unit,
     )
-    ctx.restore()
+    gctx.restore()
+
+    // lettering needs clean paper to read against, so the ground is cleared
+    // back from the letterforms and fades in again around them
+    if (s.groundClear > 0) {
+      const letters = paintLetteringMask(s, outer, win, unit, W, H, face, shape)
+      const halo = document.createElement("canvas")
+      halo.width = W
+      halo.height = H
+      const hctx = halo.getContext("2d")!
+      hctx.filter = `blur(${(unit * (1.2 + s.groundClear * 6)).toFixed(2)}px)`
+      hctx.drawImage(letters, 0, 0)
+      gctx.globalCompositeOperation = "destination-out"
+      for (let i = 0; i < 3; i++) gctx.drawImage(halo, 0, 0)
+      gctx.drawImage(letters, 0, 0)
+    }
+
+    ctx.drawImage(gnd, 0, 0)
   }
 
   if (art) drawArt(ctx, art, area, s, shape)
@@ -582,8 +604,6 @@ function paintDesign(
   // the frame and the type are a second plate, printed over the picture
   ctx.fillStyle = inkMode ? "#000" : s.frameColor
   ctx.strokeStyle = inkMode ? "#000" : s.frameColor
-
-  const face = FONT_STACKS[s.typeface] ?? FONT_STACKS.serif
 
   if (s.designOn) {
     paintFrame(ctx, s, outer, unit)
@@ -618,132 +638,177 @@ function paintDesign(
           paintOrnament(ctx, s.ornament, r, b, os, true, true)
       }
     }
-    const inset = s.frame === "none" ? unit * 1.5 : unit * 5
-    if (s.country && s.countryArc) {
-      // bent over the top of the vignette, the way the 1922 issues set it
-      const r =
-        shape === "circle" || shape === "oval"
-          ? Math.min(win.w, win.h) / 2
-          : Math.min(win.w / 2, win.h * 0.72)
-      const cy =
-        shape === "circle" || shape === "oval" ? win.y + win.h / 2 : win.y + r
-      ctx.font = `600 ${unit * 4}px ${face}`
-      ctx.textBaseline = "middle"
-      arcText(
-        ctx,
-        s.country.toUpperCase(),
-        win.x + win.w / 2,
-        cy,
-        r + unit * 3.4,
-        -Math.PI / 2,
-        false,
-      )
-    } else if (s.country) {
-      ctx.font = `600 ${unit * 4.2}px ${face}`
-      ctx.textBaseline = "alphabetic"
-      trackedText(
-        ctx,
-        s.country.toUpperCase(),
-        outer.x + outer.w / 2,
-        outer.y + inset + unit * 3.6,
-        unit * 0.55,
-      )
-    }
-    const footY = outer.y + outer.h - inset
-    // the value is placed against a corner, then nudged from there
-    const dnx = s.denomPos.x * outer.w
-    const dny = -s.denomPos.y * outer.h
-    if (s.denomination && s.tablets) {
-      // the high values knocked the numeral out of a solid tablet, set well
-      // inside the frame rules so nothing crosses them
-      const band = s.frame === "none" ? unit * 1.2 : unit * 5.2
-      const tw = unit * 13
-      const th = unit * 10
-      const ty = outer.y + outer.h - band - th + dny
-      ctx.textAlign = "center"
-      ctx.textBaseline = "middle"
-      ctx.font = `700 ${unit * 7}px ${face}`
-      for (const tx0 of [
-        outer.x + band,
-        outer.x + outer.w - band - tw,
-      ]) {
-        const tx = tx0 + dnx
-        ctx.fillRect(tx, ty, tw, th)
-        if (inkMode) {
-          // unprinted paper inside the numeral, so it sits below the plate
-          ctx.save()
-          ctx.globalCompositeOperation = "destination-out"
-          ctx.fillText(s.denomination, tx + tw / 2, ty + th / 2 + unit * 0.3)
-          ctx.restore()
-        } else {
-          ctx.save()
-          ctx.fillStyle = paperColor(s)
-          ctx.fillText(s.denomination, tx + tw / 2, ty + th / 2 + unit * 0.3)
-          ctx.strokeStyle = paperColor(s)
-          ctx.lineWidth = unit * 0.5
-          ctx.strokeRect(
-            tx + unit * 1.1,
-            ty + unit * 1.1,
-            tw - unit * 2.2,
-            th - unit * 2.2,
-          )
-          ctx.restore()
-        }
-      }
-    } else if (s.denomination) {
-      const a = s.denomAnchor
-      const left = a === "bottom-left" || a === "top-left"
-      const right = a === "bottom-right" || a === "top-right"
-      const top = a === "top-left" || a === "top-right"
-      ctx.font = `700 ${unit * 7}px ${face}`
-      ctx.textBaseline = "alphabetic"
-      ctx.textAlign = left ? "left" : right ? "right" : "center"
-      const band = s.frame === "none" ? unit * 1.5 : unit * 6
-      const ax = left
-        ? outer.x + band
-        : right
-          ? outer.x + outer.w - band
-          : outer.x + outer.w / 2
-      const ay = top ? outer.y + band + unit * 6 : outer.y + outer.h - band
-      ctx.fillText(s.denomination, ax + dnx, ay + dny)
-    }
-    if (s.caption && s.ribbon) {
-      // a ribbon slung between the tablets, carrying the subject name
-      const rw = Math.min(outer.w * 0.52, unit * 46)
-      const rh = unit * 5.2
-      const rx = outer.x + (outer.w - rw) / 2
-      const ry = footY - (s.tablets ? unit * 6.6 : unit * 4)
-      ctx.lineWidth = unit * 0.6
-      ctx.beginPath()
-      ctx.moveTo(rx, ry)
-      ctx.lineTo(rx + rw, ry)
-      ctx.lineTo(rx + rw - unit * 2, ry + rh / 2)
-      ctx.lineTo(rx + rw, ry + rh)
-      ctx.lineTo(rx, ry + rh)
-      ctx.lineTo(rx + unit * 2, ry + rh / 2)
-      ctx.closePath()
-      ctx.stroke()
-      ctx.font = `600 ${unit * 3}px ${face}`
-      ctx.textBaseline = "middle"
-      trackedText(
-        ctx,
-        s.caption.toUpperCase(),
-        rx + rw / 2,
-        ry + rh / 2,
-        unit * 0.35,
-      )
-    } else if (s.caption) {
-      ctx.font = `400 ${unit * 3.2}px ${face}`
-      ctx.textBaseline = "alphabetic"
-      trackedText(ctx, s.caption, outer.x + outer.w / 2, footY - unit * 1.2, unit * 0.3)
-    }
-
-    // free inscriptions print last, over every other plate
-    for (const item of s.inscriptions) {
-      paintInscription(ctx, item, s, outer, win, unit, W, H, inkMode)
-    }
+    paintLettering(ctx, s, outer, win, unit, W, H, inkMode, face, shape)
   }
   ctx.restore()
+}
+
+/** The lettering as a black silhouette, used to clear the ground. */
+function paintLetteringMask(
+  s: StampSettings,
+  outer: Box,
+  win: Box,
+  unit: number,
+  W: number,
+  H: number,
+  face: string,
+  shape: StampSettings["vignette"],
+) {
+  const c = document.createElement("canvas")
+  c.width = W
+  c.height = H
+  const mctx = c.getContext("2d")!
+  mctx.fillStyle = "#000"
+  mctx.strokeStyle = "#000"
+  paintLettering(mctx, s, outer, win, unit, W, H, true, face, shape, true)
+  return c
+}
+
+/**
+ * Every line of type on the stamp: country, value, caption and the free
+ * inscriptions. Painted twice, once as ink and once as a silhouette, so the
+ * ground can be cleared out from under the lettering.
+ */
+function paintLettering(
+  ctx: CanvasRenderingContext2D,
+  s: StampSettings,
+  outer: Box,
+  win: Box,
+  unit: number,
+  W: number,
+  H: number,
+  inkMode: boolean,
+  face: string,
+  shape: StampSettings["vignette"],
+  /** Silhouette pass: panels fill solid, so they clear the ground too */
+  mask = false,
+) {
+  const inset = s.frame === "none" ? unit * 1.5 : unit * 5
+  if (s.country && s.countryArc) {
+    // bent over the top of the vignette, the way the 1922 issues set it
+    const r =
+      shape === "circle" || shape === "oval"
+        ? Math.min(win.w, win.h) / 2
+        : Math.min(win.w / 2, win.h * 0.72)
+    const cy =
+      shape === "circle" || shape === "oval" ? win.y + win.h / 2 : win.y + r
+    ctx.font = `600 ${unit * 4}px ${face}`
+    ctx.textBaseline = "middle"
+    arcText(
+      ctx,
+      s.country.toUpperCase(),
+      win.x + win.w / 2,
+      cy,
+      r + unit * 3.4,
+      -Math.PI / 2,
+      false,
+    )
+  } else if (s.country) {
+    ctx.font = `600 ${unit * 4.2}px ${face}`
+    ctx.textBaseline = "alphabetic"
+    trackedText(
+      ctx,
+      s.country.toUpperCase(),
+      outer.x + outer.w / 2,
+      outer.y + inset + unit * 3.6,
+      unit * 0.55,
+    )
+  }
+  const footY = outer.y + outer.h - inset
+  // the value is placed against a corner, then nudged from there
+  const dnx = s.denomPos.x * outer.w
+  const dny = -s.denomPos.y * outer.h
+  if (s.denomination && s.tablets) {
+    // the high values knocked the numeral out of a solid tablet, set well
+    // inside the frame rules so nothing crosses them
+    const band = s.frame === "none" ? unit * 1.2 : unit * 5.2
+    const tw = unit * 13
+    const th = unit * 10
+    const ty = outer.y + outer.h - band - th + dny
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = `700 ${unit * 7}px ${face}`
+    for (const tx0 of [
+      outer.x + band,
+      outer.x + outer.w - band - tw,
+    ]) {
+      const tx = tx0 + dnx
+      ctx.fillRect(tx, ty, tw, th)
+      if (inkMode) {
+        // unprinted paper inside the numeral, so it sits below the plate
+        ctx.save()
+        ctx.globalCompositeOperation = "destination-out"
+        ctx.fillText(s.denomination, tx + tw / 2, ty + th / 2 + unit * 0.3)
+        ctx.restore()
+      } else {
+        ctx.save()
+        ctx.fillStyle = paperColor(s)
+        ctx.fillText(s.denomination, tx + tw / 2, ty + th / 2 + unit * 0.3)
+        ctx.strokeStyle = paperColor(s)
+        ctx.lineWidth = unit * 0.5
+        ctx.strokeRect(
+          tx + unit * 1.1,
+          ty + unit * 1.1,
+          tw - unit * 2.2,
+          th - unit * 2.2,
+        )
+        ctx.restore()
+      }
+    }
+  } else if (s.denomination) {
+    const a = s.denomAnchor
+    const left = a === "bottom-left" || a === "top-left"
+    const right = a === "bottom-right" || a === "top-right"
+    const top = a === "top-left" || a === "top-right"
+    ctx.font = `700 ${unit * 7}px ${face}`
+    ctx.textBaseline = "alphabetic"
+    ctx.textAlign = left ? "left" : right ? "right" : "center"
+    const band = s.frame === "none" ? unit * 1.5 : unit * 6
+    const ax = left
+      ? outer.x + band
+      : right
+        ? outer.x + outer.w - band
+        : outer.x + outer.w / 2
+    const ay = top ? outer.y + band + unit * 6 : outer.y + outer.h - band
+    ctx.fillText(s.denomination, ax + dnx, ay + dny)
+  }
+  if (s.caption && s.ribbon) {
+    // a ribbon slung between the tablets, carrying the subject name
+    const rw = Math.min(outer.w * 0.52, unit * 46)
+    const rh = unit * 5.2
+    const rx = outer.x + (outer.w - rw) / 2
+    const ry = footY - (s.tablets ? unit * 6.6 : unit * 4)
+    ctx.lineWidth = unit * 0.6
+    ctx.beginPath()
+    ctx.moveTo(rx, ry)
+    ctx.lineTo(rx + rw, ry)
+    ctx.lineTo(rx + rw - unit * 2, ry + rh / 2)
+    ctx.lineTo(rx + rw, ry + rh)
+    ctx.lineTo(rx, ry + rh)
+    ctx.lineTo(rx + unit * 2, ry + rh / 2)
+    ctx.closePath()
+    // the banner is a paper panel, so in the mask it clears as a whole
+    if (mask) ctx.fill()
+    ctx.stroke()
+    ctx.font = `600 ${unit * 3}px ${face}`
+    ctx.textBaseline = "middle"
+    trackedText(
+      ctx,
+      s.caption.toUpperCase(),
+      rx + rw / 2,
+      ry + rh / 2,
+      unit * 0.35,
+    )
+  } else if (s.caption) {
+    ctx.font = `400 ${unit * 3.2}px ${face}`
+    ctx.textBaseline = "alphabetic"
+    trackedText(ctx, s.caption, outer.x + outer.w / 2, footY - unit * 1.2, unit * 0.3)
+  }
+
+  // free inscriptions print last, over every other plate
+  for (const item of s.inscriptions) {
+    paintInscription(ctx, item, s, outer, win, unit, W, H, inkMode)
+  }
 }
 
 /** Anchor point inside a box, before the element's own offset. */

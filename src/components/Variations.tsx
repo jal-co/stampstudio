@@ -145,9 +145,7 @@ export function Variations({
 }) {
   if (!image) return null
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-muted-foreground">Try it as</span>
-      <div className="grid grid-cols-4 gap-1">
+    <div className="grid grid-cols-4 gap-1">
         {looks.map((look) => (
           <Variation
             key={look.id}
@@ -158,7 +156,6 @@ export function Variations({
             onPick={() => onChange(look.patch)}
           />
         ))}
-      </div>
     </div>
   )
 }

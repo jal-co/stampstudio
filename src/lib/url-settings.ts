@@ -46,6 +46,23 @@ const xy = createParser({
   eq: (a, b) => a.x === b.x && a.y === b.y,
 })
 
+/**
+ * A colour as bare hex. The leading `#` is percent encoded in a query string,
+ * and there are four colours, so it is dropped on the way out and put back on
+ * the way in. Links shared before this change still carry the `#`, so both
+ * forms parse and only the short one is ever written.
+ */
+const hex = createParser({
+  parse: (v: string) => {
+    const value = v.startsWith("#") ? v : `#${v}`
+    return /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value) ? value : null
+  },
+  serialize: (v: string) => v.replace(/^#/, ""),
+  // Case only matters to a colour picker, not to a comparison against the
+  // default, and getting this wrong would keep a default in the URL forever.
+  eq: (a: string, b: string) => a.toLowerCase() === b.toLowerCase(),
+})
+
 const lit = <T extends string>(values: readonly T[], fallback: T) =>
   parseAsStringLiteral(values).withDefault(fallback)
 
@@ -72,14 +89,14 @@ export const stampParsers = {
 
   // press
   print: lit(["engraved", "offset", "photogravure", "typeset"], d.print),
-  inkColor: parseAsString.withDefault(d.inkColor),
+  inkColor: hex.withDefault(d.inkColor),
   ink: num(3).withDefault(d.ink),
   relief: num(3).withDefault(d.relief),
 
   // furniture
   designOn: parseAsBoolean.withDefault(d.designOn),
   frame: lit(["none", "rule", "classic", "ornate", "arched"], d.frame),
-  frameColor: parseAsString.withDefault(d.frameColor),
+  frameColor: hex.withDefault(d.frameColor),
   typeface: lit(
     ["serif", "didone", "grotesque", "condensed", "typewriter", "script"],
     d.typeface,
@@ -88,7 +105,7 @@ export const stampParsers = {
   ornamentSize: num(3).withDefault(d.ornamentSize),
   vignette: lit(["none", "rect", "arch", "oval", "circle"], d.vignette),
   vignetteRule: parseAsBoolean.withDefault(d.vignetteRule),
-  vignetteColor: parseAsString.withDefault(d.vignetteColor),
+  vignetteColor: hex.withDefault(d.vignetteColor),
   feather: num(3).withDefault(d.feather),
   countryArc: parseAsBoolean.withDefault(d.countryArc),
   tablets: parseAsBoolean.withDefault(d.tablets),
@@ -100,7 +117,7 @@ export const stampParsers = {
     ["none", "guilloche", "burelage", "crosshatch", "panel", "stipple", "halftone"],
     d.ground,
   ),
-  groundColor: parseAsString.withDefault(d.groundColor),
+  groundColor: hex.withDefault(d.groundColor),
   groundWeight: num(3).withDefault(d.groundWeight),
   groundScale: num(3).withDefault(d.groundScale),
   groundAngle: num(4).withDefault(d.groundAngle),

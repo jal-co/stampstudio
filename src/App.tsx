@@ -99,7 +99,7 @@ export default function App() {
 
   const patch = useCallback(
     (p: Partial<StampSettings>) => setSettings((s) => ({ ...s, ...p })),
-    [],
+    [setSettings],
   )
 
   // a preset is a whole look, so it replaces the sheet instead of layering
@@ -117,7 +117,7 @@ export default function App() {
     } catch {
       alert("Could not load that template photograph.")
     }
-  }, [])
+  }, [setArtSource, setSettings])
 
   // Artwork named by the URL. A template arriving this way contributes its
   // photograph only: its patch is deliberately not applied, because the query
@@ -163,7 +163,7 @@ export default function App() {
     } catch {
       alert("Could not load that file. Try an SVG, PNG, JPG, or WebP.")
     }
-  }, [])
+  }, [setArtSource])
 
   const handleExport = useCallback(async () => {
     const renderer = rendererRef.current
@@ -194,7 +194,7 @@ export default function App() {
     setImageName(null)
     setCredit(null)
     setArtSource({ template: null, art: null })
-  }, [])
+  }, [setArtSource])
 
   const handleExportSettings = useCallback(() => {
     const blob = new Blob([JSON.stringify(settings, null, 2)], {
@@ -363,7 +363,7 @@ export default function App() {
     } catch {
       alert("Could not read that settings file.")
     }
-  }, [])
+  }, [setSettings])
 
   const handleRendererReady = useCallback((r: StampRenderer) => {
     rendererRef.current = r

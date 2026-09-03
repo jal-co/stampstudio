@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   createParser,
   parseAsBoolean,
@@ -222,7 +222,9 @@ export function useStampSettings() {
   // identity has to be stable. Reading current settings from a ref keeps it
   // that way while functional updates still see fresh values.
   const latest = useRef(settings)
-  latest.current = settings
+  useEffect(() => {
+    latest.current = settings
+  }, [settings])
 
   const setSettings = useCallback(
     (next: StampSettings | ((prev: StampSettings) => StampSettings)) => {

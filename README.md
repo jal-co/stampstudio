@@ -13,6 +13,11 @@ An online, open source stamp creator. Upload artwork, set the perforation gauge,
 
 **Live at [stampstud.io](https://stampstud.io)**
 
+> This is a fork of [jal-co/stampstudio](https://github.com/jal-co/stampstudio)
+> adding URL state and a variations strip. The fork deploys to
+> [bhaumikmistry.github.io/stampstudio-bk](https://bhaumikmistry.github.io/stampstudio-bk/)
+> on every push to `main`. Everything else is upstream's work.
+
 ## Features
 
 - **Perforations** punched from a signed distance field: gauge 7 to 16, adjustable hole size, and torn fibre on the teeth. Also wavy self-adhesive die-cuts, roulettes, and imperforate edges
@@ -25,6 +30,7 @@ An online, open source stamp creator. Upload artwork, set the perforation gauge,
 - **Six templates** built on Creative Commons photographs, each loading a picture and the plates designed around it
 - Pointer tilt, a corner lift with graded curl, and dark mode (press <kbd>D</kbd>)
 - Save and import settings as JSON; export PNG at 1024 / 2048 / 4096 with transparency, plus GIF, MP4, and GLB
+- **The stamp is in the URL**, so a design is a link. Only what you changed is written, artwork comes from `art=<url>` or `template=<id>`, and the sidebar offers four treatments of any picture you load. See [docs/url-parameters.md](docs/url-parameters.md)
 
 ## Templates
 

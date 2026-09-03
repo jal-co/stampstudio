@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useQueryStates } from "nuqs"
 import { ChevronDown, History, Moon, Sun } from "lucide-react"
 import { DropdownMenu } from "radix-ui"
 import { Analytics } from "@vercel/analytics/react"
@@ -22,9 +23,10 @@ import { Sidebar } from "@/components/Sidebar"
 import { StampCanvas } from "@/components/StampCanvas"
 import { track } from "@/lib/analytics"
 import { loadImageFile, loadImageUrl } from "@/lib/load-image"
-import type { PhotoCredit, Template } from "@/lib/templates"
+import { templates, type PhotoCredit, type Template } from "@/lib/templates"
 import type { StampRenderer } from "@/lib/stamp-renderer"
 import { defaultSettings, type StampSettings } from "@/lib/settings"
+import { artParsers, useStampSettings } from "@/lib/url-settings"
 
 /** File name for an export: the artwork name, or the printed country line. */
 function stampName(imageName: string | null, s: StampSettings) {
@@ -35,7 +37,11 @@ function stampName(imageName: string | null, s: StampSettings) {
 }
 
 export default function App() {
-  const [settings, setSettings] = useState<StampSettings>(defaultSettings)
+  // the stamp lives in the query string, so a design is a link
+  const [settings, setSettings] = useStampSettings()
+  const [artSource, setArtSource] = useQueryStates(artParsers, {
+    history: "replace",
+  })
   const [image, setImage] = useState<ImageBitmap | null>(null)
   const [imageName, setImageName] = useState<string | null>(null)
   const [credit, setCredit] = useState<PhotoCredit | null>(null)
@@ -93,7 +99,7 @@ export default function App() {
 
   const patch = useCallback(
     (p: Partial<StampSettings>) => setSettings((s) => ({ ...s, ...p })),
-    [],
+    [setSettings],
   )
 
   // a preset is a whole look, so it replaces the sheet instead of layering
@@ -106,11 +112,44 @@ export default function App() {
       setImageName(loaded.name)
       setCredit(t.credit)
       setSettings({ ...defaultSettings, ...t.patch })
+      setArtSource({ template: t.id, art: null })
       track("template_applied", { template: t.id })
     } catch {
       alert("Could not load that template photograph.")
     }
-  }, [])
+  }, [setArtSource, setSettings])
+
+  // Artwork named by the URL. A template arriving this way contributes its
+  // photograph only: its patch is deliberately not applied, because the query
+  // string already carries whatever the sender had set, and replaying the
+  // patch on top would overwrite it.
+  const artLoaded = useRef(false)
+  useEffect(() => {
+    if (artLoaded.current) return
+    artLoaded.current = true
+    const { template: id, art: url } = artSource
+    if (!id && !url) return
+    void (async () => {
+      try {
+        if (id) {
+          const t = templates.find((x) => x.id === id)
+          if (!t) return
+          const loaded = await loadImageUrl(t.image, `${t.label}.jpg`)
+          setImage(loaded.bitmap)
+          setImageName(loaded.name)
+          setCredit(t.credit)
+          return
+        }
+        const loaded = await loadImageUrl(url!, "artwork")
+        setImage(loaded.bitmap)
+        setImageName(loaded.name)
+      } catch {
+        // a host that does not allow cross-origin reads, or a dead link. The
+        // stamp still renders, just without a picture in it.
+        console.warn("Could not load the artwork this link points at:", url ?? id)
+      }
+    })()
+  }, [artSource])
 
   const handleUpload = useCallback(async (file: File) => {
     try {
@@ -118,10 +157,13 @@ export default function App() {
       setImage(loaded.bitmap)
       setImageName(loaded.name)
       setCredit(null)
+      // an uploaded file has no address, so drop any artwork the URL named
+      // rather than leaving a link that points at the wrong picture
+      setArtSource({ template: null, art: null })
     } catch {
       alert("Could not load that file. Try an SVG, PNG, JPG, or WebP.")
     }
-  }, [])
+  }, [setArtSource])
 
   const handleExport = useCallback(async () => {
     const renderer = rendererRef.current
@@ -151,7 +193,8 @@ export default function App() {
     setImage(null)
     setImageName(null)
     setCredit(null)
-  }, [])
+    setArtSource({ template: null, art: null })
+  }, [setArtSource])
 
   const handleExportSettings = useCallback(() => {
     const blob = new Blob([JSON.stringify(settings, null, 2)], {
@@ -320,7 +363,7 @@ export default function App() {
     } catch {
       alert("Could not read that settings file.")
     }
-  }, [])
+  }, [setSettings])
 
   const handleRendererReady = useCallback((r: StampRenderer) => {
     rendererRef.current = r
@@ -330,6 +373,7 @@ export default function App() {
     <div className="flex h-dvh flex-col-reverse overflow-hidden bg-background text-foreground md:flex-row">
       <Sidebar
         settings={settings}
+        image={image}
         imageName={imageName}
         onChange={patch}
         onTemplate={(t) => void applyTemplate(t)}

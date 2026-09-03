@@ -3,6 +3,7 @@ import { FileDown, FileUp, RotateCcw, X } from "lucide-react"
 import { StampLogo } from "@/components/StampLogo"
 import { ColorPickerField } from "@/components/ColorPickerField"
 import { templates, type Template } from "@/lib/templates"
+import { Variations } from "@/components/Variations"
 import { InscriptionEditor } from "@/components/InscriptionEditor"
 import { TemplatePreview } from "@/components/TemplatePreview"
 import { cn } from "@/lib/utils"
@@ -67,6 +68,7 @@ const printPresets: {
 
 interface Props {
   settings: StampSettings
+  image: ImageBitmap | null
   imageName: string | null
   onChange: (patch: Partial<StampSettings>) => void
   onTemplate: (template: Template) => void
@@ -293,6 +295,7 @@ function SwitchRow({
 
 export function Sidebar({
   settings,
+  image,
   imageName,
   onChange,
   onTemplate,
@@ -313,6 +316,23 @@ export function Sidebar({
       <Separator />
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-4 py-4">
+          {/* Four treatments of the loaded artwork. First, because once there
+              is a picture this is the question, and the sidebar scrolls for
+              four thousand pixels below here. */}
+          {image && (
+            <>
+              <Section title="Try it as">
+                <Variations
+                  settings={settings}
+                  image={image}
+                  imageName={imageName}
+                  onChange={onChange}
+                />
+              </Section>
+              <Separator />
+            </>
+          )}
+
           {/* Finished stamps: a photograph and the plates that suit it */}
           <Section title="Templates">
             <div className="grid grid-cols-2 gap-2">

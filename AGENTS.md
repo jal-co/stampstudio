@@ -15,6 +15,12 @@ to `main`).
 - `src/lib/stamp-renderer.ts` - the 3D side: paper GLSL shader, intaglio
   relief, gummed back, curl geometry, PNG/GIF/video/GLB exporters
 - `src/lib/settings.ts` - `StampSettings` interface, defaults, format aspects
+- `src/lib/url-settings.ts` - the query-string parsers and `useStampSettings`,
+  the `useState` replacement App uses. Add a field to `StampSettings` without a
+  parser here and the build fails on purpose
+- `src/lib/looks.ts` - the four treatments offered when artwork loads
+- `src/components/Variations.tsx` - bakes those four as thumbnails
+- `docs/url-parameters.md` - the parameter reference and worked examples
 - `src/lib/fonts.ts` - the lettering faces and the loader the bake waits on
 - `src/lib/ornaments.ts` - corner ornaments as SVG path data, tinted on bake
 - `src/lib/presets.ts` - the looks offered in the sidebar's "Start from"
